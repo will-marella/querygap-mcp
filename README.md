@@ -18,6 +18,25 @@ useful first request is:
 > Resolve the Framingham Heart Study, then find variables related to systolic
 > blood pressure.
 
+For Codex:
+
+```bash
+codex mcp add querygap --url https://mcp.querygap.org/mcp
+```
+
+Or use the equivalent client configuration:
+
+```json
+{
+  "mcpServers": {
+    "querygap": {
+      "type": "http",
+      "url": "https://mcp.querygap.org/mcp"
+    }
+  }
+}
+```
+
 ## What is included
 
 - The standalone, read-only MCP runtime and its five typed tools.
