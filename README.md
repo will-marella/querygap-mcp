@@ -1,6 +1,8 @@
 # QueryGaP MCP
 
-Use QueryGaP with ChatGPT and Claude directly in your browser!
+## Use QueryGaP with ChatGPT and Claude directly in your browser
+
+**No local installation. No QueryGaP account. No API key.**
 
 QueryGaP gives your assistant structured access to dbGaP and UK Biobank
 documentation metadata. Use it to resolve dbGaP studies, find variables,
