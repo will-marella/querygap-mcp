@@ -1,0 +1,4 @@
+-r requirements-mcp.txt
+pytest==9.1.1
+PyYAML==6.0.3
+pglast==8.4

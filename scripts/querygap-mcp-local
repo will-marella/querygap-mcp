@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+REPOSITORY_ROOT=$(dirname -- "$SCRIPT_DIR")
+PYTHON="$REPOSITORY_ROOT/.venv-mcp/bin/python"
+
+if [ ! -x "$PYTHON" ]; then
+    echo "Missing .venv-mcp; create it and install requirements-mcp.txt." >&2
+    exit 2
+fi
+
+cd "$REPOSITORY_ROOT"
+exec "$PYTHON" -m querygap_mcp.local "$@"

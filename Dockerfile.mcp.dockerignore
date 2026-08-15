@@ -1,0 +1,8 @@
+**
+!Dockerfile.mcp
+!Dockerfile.mcp.dockerignore
+!requirements-mcp.txt
+!querygap_mcp/
+!querygap_mcp/**
+querygap_mcp/**/__pycache__/
+querygap_mcp/**/*.py[cod]

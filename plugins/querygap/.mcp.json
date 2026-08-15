@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "querygap": {
+      "type": "http",
+      "url": "https://mcp.querygap.org/mcp"
+    }
+  }
+}

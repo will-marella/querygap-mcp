@@ -1,0 +1,20 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv-mcp/
+venv/
+*.egg-info/
+
+# Local state and logs
+*.db
+*.db-journal
+data/
+logs/
+*.log
+
+# Secrets - never commit
+.env
+.env.mcp.local
+
+.DS_Store

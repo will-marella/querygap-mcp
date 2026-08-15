@@ -1,0 +1,7 @@
+# Standalone QueryGaP MCP runtime. This intentionally does not install the web app.
+anyio==4.14.2
+mcp[cli]==2.0.0
+openai==2.26.0
+psycopg2-binary==2.9.12
+starlette==1.6.0
+uvicorn==0.52.2
