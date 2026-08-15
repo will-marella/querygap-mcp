@@ -1,12 +1,12 @@
-# QueryGaP MCP
-
-![QueryGaP connects ChatGPT and Claude to linked dbGaP study, dataset, variable, summary-statistics, and documentation results.](docs/assets/querygap-mcp-overview.svg)
-
-## Use QueryGaP with ChatGPT and Claude directly in your browser
+# QueryGaP MCP: Use QueryGaP with ChatGPT and Claude directly in your browser!
 
 **No local installation. No QueryGaP account. No QueryGaP API key.**
 
-[![MCP CI](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml)
+[![MCP CI](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml) [![Remote MCP](https://img.shields.io/badge/MCP-remote_server-0066CC)](#connect) [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](#development) [![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache)](LICENSE)
+
+<p align="center">
+  <img src="docs/assets/querygap-mcp-overview.svg" width="80%" alt="QueryGaP connects ChatGPT and Claude to linked dbGaP study, dataset, variable, summary-statistics, and documentation results.">
+</p>
 
 QueryGaP gives your assistant structured access to dbGaP and UK Biobank
 documentation metadata. Use it to resolve dbGaP studies, find variables,
