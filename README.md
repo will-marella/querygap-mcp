@@ -1,4 +1,6 @@
-# QueryGaP MCP: Use QueryGaP with ChatGPT and Claude directly in your browser!
+# QueryGaP MCP
+
+### Use QueryGaP with ChatGPT and Claude directly in your browser!
 
 **No local installation. No QueryGaP account. No QueryGaP API key.**
 
