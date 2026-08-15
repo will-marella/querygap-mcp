@@ -2,7 +2,7 @@
 
 - Date: 2026-08-13
 - Host: Codex desktop CLI `0.147.0-alpha.1.2`, default hosted model
-- Server: uncommitted candidate based on `3f2b7ca`; finalized in the next commit
+- Server: local pre-release candidate corresponding to the v0.1.0 implementation
 - Transport: Streamable HTTP on `127.0.0.1`
 - Database: live metadata catalog through `querygap_mcp_ro`
 - Embeddings: enabled; QueryGaP-funded query embeddings
