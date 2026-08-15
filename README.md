@@ -11,21 +11,63 @@ handles study resolution, scoped retrieval, ranking, and provenance.
 
 ## Connect
 
-The hosted MCP endpoint is:
+QueryGaP is a hosted remote MCP server. Use this URL in any compatible client:
 
 ```text
 https://mcp.querygap.org/mcp
 ```
 
-For Codex:
+The hosted public beta requires no QueryGaP account, access token, or
+user-supplied OpenAI key.
+
+### Use QueryGaP in a browser
+
+**Claude**
+
+1. In Claude on the web, open `Customize > Connectors`.
+2. Select `+`, then `Add custom connector`.
+3. Enter `QueryGaP` and `https://mcp.querygap.org/mcp`, leaving the optional
+   authentication fields blank.
+4. In a conversation, select `+ > Connectors` and enable QueryGaP.
+
+The same remote connector is also available in Claude Desktop. See
+[Anthropic's custom connector guide](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp).
+On managed Team and Enterprise accounts, an organization owner must add the
+connector before members can enable it.
+
+**ChatGPT**
+
+Where ChatGPT Developer mode is available:
+
+1. Open `Settings > Security and login` and enable `Developer mode`.
+2. Open `ChatGPT Plugins`, select `+`, and create a developer-mode app.
+3. Use `https://mcp.querygap.org/mcp` as the remote MCP URL and select no
+   authentication.
+4. Enable the app from the conversation's Developer mode tools.
+
+See the [ChatGPT Developer mode guide](https://developers.openai.com/api/docs/guides/developer-mode).
+
+### Use QueryGaP with a coding agent
+
+**Codex**
 
 ```bash
 codex mcp add querygap --url https://mcp.querygap.org/mcp
 ```
 
-For another MCP client, add the endpoint as a remote Streamable HTTP server.
-The hosted public beta requires no QueryGaP account, access token, or
-user-supplied OpenAI key. Then try:
+**Claude Code**
+
+```bash
+claude mcp add --transport http --scope user querygap https://mcp.querygap.org/mcp
+```
+
+The user scope makes QueryGaP available across projects. See the
+[Claude Code MCP guide](https://code.claude.com/docs/en/mcp).
+
+For another MCP client, add the endpoint as a remote Streamable HTTP server
+with no authentication.
+
+### Try it
 
 > Resolve the Framingham Heart Study, then find variables related to systolic
 > blood pressure. Return their exact dbGaP IDs, descriptions, parent datasets,
