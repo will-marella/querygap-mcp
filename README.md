@@ -1,5 +1,7 @@
 # QueryGaP MCP
 
+![QueryGaP connects ChatGPT and Claude to linked dbGaP study, dataset, variable, summary-statistics, and documentation results.](docs/assets/querygap-mcp-overview.svg)
+
 ## Use QueryGaP with ChatGPT and Claude directly in your browser
 
 **No local installation. No QueryGaP account. No QueryGaP API key.**

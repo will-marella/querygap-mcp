@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1296 720" role="img" aria-labelledby="title desc">
+  <title id="title">Questions become a QueryGaP evidence record through ChatGPT or Claude</title>
+  <desc id="desc">Loose scientific questions enter QueryGaP, which people can connect to through ChatGPT or Claude. The output resolves into a structured evidence record with exact study, dataset, variable, description, summary statistics, documentation metadata, and source links.</desc>
+
+  <defs>
+    <radialGradient id="orbFill" cx="46%" cy="42%" r="64%">
+      <stop offset="0" stop-color="#FDFBF7"/>
+      <stop offset="0.58" stop-color="#E4F2FF"/>
+      <stop offset="1" stop-color="#B9DAFA"/>
+    </radialGradient>
+    <symbol id="externalLinkIcon" viewBox="0 0 24 24">
+      <path d="M14 5h5v5" fill="none" stroke="#0066CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10 14L19 5" fill="none" stroke="#0066CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M19 14v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" fill="none" stroke="#0066CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+
+  <rect x="1" y="1" width="1294" height="718" rx="4" fill="#FAF8F4" stroke="#D9D5CE" stroke-width="2"/>
+  <path d="M36 38H1260M36 682H1260" stroke="#D9D5CE"/>
+
+  <!-- ordered output haze, behind the report -->
+  <path d="M528 412 600 56V664L532 574Z" fill="#E4F2FF" opacity="0.5"/>
+  <path d="M521 451C546 443 573 439 600 439M534 495C556 495 579 498 600 498M526 543C550 552 576 561 600 564" fill="none" stroke="#0066CC" stroke-width="1.7" opacity="0.55"/>
+  <circle cx="550" cy="444" r="2.5" fill="#0066CC" opacity="0.5"/>
+  <circle cx="574" cy="440" r="3" fill="#0066CC" opacity="0.65"/>
+  <circle cx="596" cy="439" r="3.5" fill="#0066CC"/>
+  <circle cx="552" cy="495" r="2.5" fill="#0066CC" opacity="0.5"/>
+  <circle cx="576" cy="497" r="3" fill="#0066CC" opacity="0.65"/>
+  <circle cx="596" cy="498" r="3.5" fill="#0066CC"/>
+  <circle cx="550" cy="552" r="2.5" fill="#0066CC" opacity="0.5"/>
+  <circle cx="576" cy="561" r="3" fill="#0066CC" opacity="0.65"/>
+  <circle cx="596" cy="564" r="3.5" fill="#0066CC"/>
+
+
+  <g transform="translate(0 270)">
+  <!-- loose research questions -->
+  <g font-family="Georgia, 'Times New Roman', serif">
+    <g transform="rotate(-2 156 111)">
+      <rect x="18" y="82" width="276" height="58" rx="29" fill="#FDFBF7" stroke="#8F8A83" stroke-width="1.6"/>
+      <text x="156" y="119" text-anchor="middle" fill="#1A1A1A" font-size="22" font-weight="600">FHS · Original Cohort</text>
+    </g>
+    <g transform="rotate(2 159 182)">
+      <rect x="88" y="155" width="142" height="54" rx="27" fill="#FDFBF7" stroke="#8F8A83" stroke-width="1.6"/>
+      <text x="159" y="190" text-anchor="middle" fill="#1A1A1A" font-size="23" font-weight="600">Exam 12</text>
+    </g>
+    <g transform="rotate(-1 140 255)">
+      <rect x="25" y="226" width="230" height="58" rx="29" fill="#FDFBF7" stroke="#8F8A83" stroke-width="1.6"/>
+      <text x="140" y="263" text-anchor="middle" fill="#1A1A1A" font-size="24" font-weight="600">systolic BP?</text>
+    </g>
+  </g>
+  <path d="M294 111C315 118 329 146 351 172M230 182C271 182 303 191 338 207M255 255C284 254 308 247 340 239" fill="none" stroke="#8F8A83" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="307" cy="122" r="3.5" fill="#0066CC" opacity="0.42"/>
+  <circle cx="329" cy="150" r="4.5" fill="#0066CC" opacity="0.58"/>
+  <circle cx="281" cy="190" r="3.5" fill="#0066CC" opacity="0.46"/>
+  <circle cx="312" cy="202" r="4.5" fill="#0066CC" opacity="0.62"/>
+  <circle cx="284" cy="253" r="3.5" fill="#0066CC" opacity="0.46"/>
+  <circle cx="313" cy="246" r="4.5" fill="#0066CC" opacity="0.62"/>
+
+  <!-- nebulous QueryGaP orb -->
+  <path d="M443 108C492 108 535 133 556 174 578 216 568 266 538 302 507 338 455 345 411 330 366 315 335 282 327 241 319 201 329 171 354 151 378 122 408 108 443 108Z" fill="url(#orbFill)" stroke="#0066CC" stroke-width="2"/>
+  <path d="M371 146C406 125 460 124 500 145 537 165 551 207 542 244 532 285 492 312 446 315 399 318 363 294 346 259" fill="none" stroke="#0066CC" stroke-width="1.3" opacity="0.36"/>
+  <path d="M349 193C378 164 426 150 470 159 514 168 542 198 542 231 542 269 502 294 461 298 414 303 370 281 347 249" fill="none" stroke="#1A1A1A" stroke-width="1.3" opacity="0.28"/>
+  <path d="M370 177C393 198 411 211 438 218 474 228 506 218 535 193M350 265C388 250 418 247 452 253 486 259 512 276 527 295" fill="none" stroke="#0066CC" stroke-width="1.5" opacity="0.48"/>
+  <path d="M384 133C371 186 381 234 411 274 430 299 456 317 489 325M516 139C488 172 475 201 474 230 472 267 488 291 518 306" fill="none" stroke="#69655F" stroke-width="1.1" opacity="0.25"/>
+  <circle cx="444" cy="223" r="12" fill="#0066CC"/>
+  <circle cx="444" cy="223" r="24" fill="none" stroke="#0066CC" stroke-width="1.5" opacity="0.38"/>
+  <circle cx="405" cy="187" r="4" fill="#0066CC" opacity="0.55"/>
+  <circle cx="487" cy="181" r="5" fill="#1A1A1A" opacity="0.35"/>
+  <circle cx="505" cy="258" r="4" fill="#0066CC" opacity="0.55"/>
+  <circle cx="395" cy="271" r="5" fill="#1A1A1A" opacity="0.28"/>
+  <circle cx="532" cy="218" r="3" fill="#0066CC" opacity="0.7"/>
+  </g>
+
+  <g transform="translate(0 -310)">
+  <!-- QueryGaP connections to user-facing AI clients -->
+  <text x="300" y="444" text-anchor="middle" fill="#1A1A1A" font-family="Georgia, 'Times New Roman', serif" font-size="76" font-weight="700">QueryGaP</text>
+  <text x="300" y="486" text-anchor="middle" fill="#69655F" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="600" letter-spacing="0.5">Connect via</text>
+  <path d="M300 497V516M195 516H405M195 516V530M405 516V530" fill="none" stroke="#A7A39D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="105" y="530" width="180" height="64" rx="16" fill="#FDFBF7" stroke="#B9B4AC" stroke-width="1.5"/>
+  <rect x="315" y="530" width="180" height="64" rx="16" fill="#FDFBF7" stroke="#B9B4AC" stroke-width="1.5"/>
+
+  <!-- ChatGPT product mark -->
+  <g transform="translate(121 543)" fill="#1A1A1A">
+    <g transform="scale(2.05)">
+      <path d="M11.248 18.25q-.825 0-1.568-.314a4.3 4.3 0 0 1-1.32-.874 4 4 0 0 1-1.304.214 4 4 0 0 1-2.046-.544 4.27 4.27 0 0 1-1.518-1.485 4 4 0 0 1-.56-2.095q0-.48.131-1.04A4.4 4.4 0 0 1 2.04 10.71a4.07 4.07 0 0 1 .017-3.4 4.2 4.2 0 0 1 1.056-1.418 3.8 3.8 0 0 1 1.6-.842 3.9 3.9 0 0 1 .76-1.683q.593-.759 1.451-1.188a4.04 4.04 0 0 1 1.832-.429q.825 0 1.567.313.742.314 1.32.875a4 4 0 0 1 1.304-.215q1.106 0 2.046.545a4.14 4.14 0 0 1 1.501 1.485q.578.941.578 2.095 0 .48-.132 1.04.66.61 1.023 1.419.363.792.363 1.666 0 .892-.38 1.717a4.3 4.3 0 0 1-1.072 1.435 3.8 3.8 0 0 1-1.584.825 3.8 3.8 0 0 1-.775 1.683 4.06 4.06 0 0 1-1.436 1.188 4.04 4.04 0 0 1-1.832.429m-4.076-2.062q.825 0 1.435-.347l3.103-1.782a.36.36 0 0 0 .164-.313v-1.42L7.881 14.62a.67.67 0 0 1-.726 0l-3.118-1.798a.5.5 0 0 1-.017.115v.198q0 .841.396 1.551.413.693 1.139 1.089a3.2 3.2 0 0 0 1.617.412m.165-2.69a.4.4 0 0 0 .181.05q.083 0 .165-.05l1.238-.71-3.977-2.31a.7.7 0 0 1-.363-.643v-3.58q-.825.362-1.32 1.122a2.9 2.9 0 0 0-.495 1.65q0 .809.413 1.55.412.743 1.072 1.123zm3.91 3.663q.875 0 1.585-.396a2.96 2.96 0 0 0 1.534-2.64v-3.564a.32.32 0 0 0-.165-.297l-1.254-.726v4.604a.7.7 0 0 1-.363.643l-3.119 1.799a3 3 0 0 0 1.783.577m.627-6.039V8.878L10.01 7.822 8.129 8.878v2.244l1.881 1.056zM7.057 5.859a.7.7 0 0 1 .363-.644l3.119-1.798a3 3 0 0 0-1.782-.578q-.874 0-1.584.396A2.96 2.96 0 0 0 6.05 4.324a3.07 3.07 0 0 0-.396 1.551v3.547q0 .199.165.314l1.237.726zm8.383 7.887q.825-.364 1.303-1.123.495-.758.495-1.65a3.15 3.15 0 0 0-.412-1.55q-.413-.743-1.073-1.123l-3.086-1.782q-.099-.065-.181-.049a.3.3 0 0 0-.165.05l-1.238.692 3.993 2.327a.6.6 0 0 1 .264.264.64.64 0 0 1 .1.363zm-3.317-8.382a.63.63 0 0 1 .726 0l3.135 1.831v-.297q0-.792-.396-1.501a2.86 2.86 0 0 0-1.105-1.155q-.71-.43-1.65-.43-.825 0-1.436.347L8.294 5.941a.36.36 0 0 0-.165.314v1.418z"/>
+    </g>
+    <text x="48" y="29" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600">ChatGPT</text>
+  </g>
+
+  <!-- Claude product mark -->
+  <g transform="translate(329 543)">
+    <g transform="matrix(0.24 0 0 0.24 -18.2304 -53.6472)">
+      <path fill="#D97757" d="m 105.01,322.07 29.14,-16.35 0.49,-1.42 -0.49,-0.79 h -1.42 l -4.87,-0.3 -16.65,-0.45 -14.44,-0.6 -13.99,-0.75 -3.52,-0.75 -3.3,-4.35 0.34,-2.17 2.96,-1.99 4.24,0.37 9.37,0.64 14.06,0.97 10.2,0.6 15.11,1.57 h 2.4 l 0.34,-0.97 -0.82,-0.6 -0.64,-0.6 -14.55,-9.86 -15.75,-10.42 -8.25,-6 -4.46,-3.04 -2.25,-2.85 -0.97,-6.22 4.05,-4.46 5.44,0.37 1.39,0.37 5.51,4.24 11.77,9.11 15.37,11.32 2.25,1.87 0.9,-0.64 0.11,-0.45 -1.01,-1.69 -8.36,-15.11 -8.92,-15.37 -3.97,-6.37 -1.05,-3.82 c -0.37,-1.57 -0.64,-2.89 -0.64,-4.5 l 4.61,-6.26 2.55,-0.82 6.15,0.82 2.59,2.25 3.82,8.74 6.19,13.76 9.6,18.71 2.81,5.55 1.5,5.14 0.56,1.57 h 0.97 v -0.9 l 0.79,-10.54 1.46,-12.94 1.42,-16.65 0.49,-4.69 2.32,-5.62 4.61,-3.04 3.6,1.72 2.96,4.24 -0.41,2.74 -1.76,11.44 -3.45,17.92 -2.25,12 h 1.31 l 1.5,-1.5 6.07,-8.06 10.2,-12.75 4.5,-5.06 5.25,-5.59 3.37,-2.66 h 6.37 l 4.69,6.97 -2.1,7.2 -6.56,8.32 -5.44,7.05 -7.8,10.5 -4.87,8.4 0.45,0.67 1.16,-0.11 17.62,-3.75 9.52,-1.72 11.36,-1.95 5.14,2.4 0.56,2.44 -2.02,4.99 -12.15,3 -14.25,2.85 -21.22,5.02 -0.26,0.19 0.3,0.37 9.56,0.9 4.09,0.22 h 10.01 l 18.64,1.39 4.87,3.22 2.92,3.94 -0.49,3 -7.5,3.82 -10.12,-2.4 -23.62,-5.62 -8.1,-2.02 h -1.12 v 0.67 l 6.75,6.6 12.37,11.17 15.49,14.4 0.79,3.56 -1.99,2.81 -2.1,-0.3 -13.61,-10.24 -5.25,-4.61 -11.89,-10.01 h -0.79 v 1.05 l 2.74,4.01 14.47,21.75 0.75,6.67 -1.05,2.17 -3.75,1.31 -4.12,-0.75 -8.47,-11.89 -8.74,-13.39 -7.05,-12 -0.86,0.49 -4.16,44.81 -1.95,2.29 -4.5,1.72 -3.75,-2.85 -1.99,-4.61 1.99,-9.11 2.4,-11.89 1.95,-9.45 1.76,-11.74 1.05,-3.9 -0.07,-0.26 -0.86,0.11 -8.85,12.15 -13.46,18.19 -10.65,11.4 -2.55,1.01 -4.42,-2.29 0.41,-4.09 2.47,-3.64 14.74,-18.75 8.89,-11.62 5.74,-6.71 -0.04,-0.97 h -0.34 l -39.15,25.42 -6.97,0.9 -3,-2.81 0.37,-4.61 1.42,-1.5 11.77,-8.1 -0.04,0.04 z"/>
+    </g>
+    <text x="46" y="29" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="600">Claude</text>
+  </g>
+  </g>
+
+  <!-- structured evidence record -->
+  <rect x="608" y="51" width="660" height="626" fill="#EEEAE4" stroke="#A7A39D" stroke-width="1.4"/>
+  <rect x="600" y="43" width="660" height="626" fill="#FDFBF7" stroke="#1A1A1A" stroke-width="2"/>
+  <path d="M600 151H1260" stroke="#1A1A1A" stroke-width="1.5"/>
+
+  <text x="930" y="98" text-anchor="middle" fill="#1A1A1A" font-family="Georgia, 'Times New Roman', serif" font-size="35" font-weight="700">Framingham Cohort</text>
+  <text x="930" y="130" text-anchor="middle" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="17">541 datasets · 91,702 variables</text>
+
+  <!-- study → dataset → variable lineage: the primary result -->
+  <path d="M660 190V370" fill="none" stroke="#0066CC" stroke-width="4" stroke-linecap="round"/>
+  <path d="M660 210H690M660 285H690M660 360H690" fill="none" stroke="#0066CC" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="660" cy="210" r="7" fill="#0066CC"/>
+  <circle cx="660" cy="285" r="7" fill="#0066CC"/>
+  <circle cx="660" cy="360" r="7" fill="#0066CC"/>
+
+  <text x="710" y="216" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Study</text>
+  <text x="815" y="216" fill="#0066CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700">phs000007.v35.p16</text>
+  <use href="#externalLinkIcon" x="1014" y="201" width="15" height="15"/>
+  <text x="815" y="243" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="17">Framingham Cohort</text>
+
+  <text x="710" y="291" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Dataset</text>
+  <text x="815" y="291" fill="#0066CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700">pht000014.v3.p16</text>
+  <use href="#externalLinkIcon" x="1014" y="276" width="15" height="15"/>
+  <text x="815" y="318" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="17">Original Cohort</text>
+
+  <text x="710" y="366" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Variable</text>
+  <text x="815" y="366" fill="#0066CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="19" font-weight="700">phv00001809.v1.p16</text>
+  <use href="#externalLinkIcon" x="1025" y="351" width="15" height="15"/>
+  <text x="815" y="393" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="17">Nurse SBP</text>
+
+  <path d="M630 410H1230" stroke="#D9D5CE"/>
+
+  <!-- summary statistics -->
+  <text x="630" y="449" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="700">Summary statistics</text>
+  <text x="1230" y="449" text-anchor="end" fill="#1A1A1A" font-family="Georgia, 'Times New Roman', serif" font-size="17">n = 3,130 · median 140</text>
+  <path d="M650 490H1210" stroke="#1A1A1A" stroke-width="2"/>
+  <path d="M650 482V498M1210 482V498" stroke="#1A1A1A" stroke-width="2"/>
+  <circle cx="843" cy="490" r="8" fill="#0066CC"/>
+  <text x="650" y="518" text-anchor="middle" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="16">min 86</text>
+  <text x="843" y="518" text-anchor="middle" fill="#0066CC" font-family="Georgia, 'Times New Roman', serif" font-size="16" font-weight="700">mean 139.1</text>
+  <text x="1210" y="518" text-anchor="middle" fill="#69655F" font-family="Georgia, 'Times New Roman', serif" font-size="16">max 240</text>
+
+  <path d="M630 540H1230" stroke="#D9D5CE"/>
+
+  <!-- compact source documentation footer -->
+  <text x="630" y="579" fill="#1A1A1A" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Documentation</text>
+  <text x="790" y="579" fill="#0066CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" font-weight="700">phd000049.2</text>
+  <use href="#externalLinkIcon" x="908" y="565" width="14" height="14"/>
+  <text x="630" y="618" fill="#1A1A1A" font-family="Georgia, 'Times New Roman', serif" font-size="18">Clinic Exam · Original Cohort · Exam 12 · Annotated Form</text>
+</svg>
