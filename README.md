@@ -2,7 +2,9 @@
 
 ## Use QueryGaP with ChatGPT and Claude directly in your browser
 
-**No local installation. No QueryGaP account. No API key.**
+**No local installation. No QueryGaP account. No QueryGaP API key.**
+
+[![MCP CI](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml)
 
 QueryGaP gives your assistant structured access to dbGaP and UK Biobank
 documentation metadata. Use it to resolve dbGaP studies, find variables,
@@ -73,9 +75,17 @@ with no authentication.
 
 ### Try it
 
+**dbGaP**
+
 > Resolve the Framingham Heart Study, then find variables related to systolic
 > blood pressure. Return their exact dbGaP IDs, descriptions, parent datasets,
 > and source links.
+
+**UK Biobank**
+
+> Find UK Biobank fields related to kidney function. Inspect the most relevant
+> field and return its exact field ID, title, category path, available instance
+> summaries, and source link.
 
 ## Tools
 
@@ -121,8 +131,10 @@ database and the dedicated read-only role described in
 ## Documentation
 
 - [`docs/mcp.md`](docs/mcp.md): local setup and complete tool contract
-- `querygap://ontology/v0`: entities, identity, relationships, and provenance
-- `querygap://retrieval-contract/v0`: study scoping and retrieval rules
+- [`querygap://ontology/v0`](querygap_mcp/resources/ontology-v0.md): entities,
+  identity, relationships, and provenance
+- [`querygap://retrieval-contract/v0`](querygap_mcp/resources/retrieval-contract-v0.md):
+  study scoping and retrieval rules
 - [`docs/mcp-security.md`](docs/mcp-security.md): hosted security boundary
 - [`docs/mcp-evaluation.md`](docs/mcp-evaluation.md): evaluation protocol
 

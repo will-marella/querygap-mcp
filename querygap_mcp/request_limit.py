@@ -7,7 +7,7 @@ import os
 import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -43,7 +43,7 @@ class SQLiteRequestLimiter:
     path: Path
     requests_per_minute: int
     daily_limit: int
-    now: Callable[[], datetime] = lambda: datetime.now(UTC)
+    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
 
     def __post_init__(self) -> None:
         if not self.path.is_absolute():
@@ -81,7 +81,7 @@ class SQLiteRequestLimiter:
             ) from None
 
     def acquire(self) -> None:
-        current = self.now().astimezone(UTC)
+        current = self.now().astimezone(timezone.utc)
         minute_start = current.replace(second=0, microsecond=0)
         day_start = current.replace(hour=0, minute=0, second=0, microsecond=0)
         minute_bucket = minute_start.isoformat()

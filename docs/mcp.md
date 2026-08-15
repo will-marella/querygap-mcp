@@ -1,7 +1,7 @@
 # QueryGaP MCP public beta and local development
 
 The QueryGaP MCP server exposes the project's scientific retrieval layer to
-ChatGPT, Codex, and other MCP clients. The client performs the reasoning;
+Claude, ChatGPT, Codex, and other MCP clients. The client performs the reasoning;
 QueryGaP returns structured, read-only metadata and source links.
 
 This is deliberately separate from the QueryGaP website. It does not invoke
@@ -31,7 +31,8 @@ variables related to systolic blood pressure.”
 
 ## Local setup
 
-Use Python 3.10 or newer from the repository root (3.12 and 3.14 are tested):
+Use Python 3.10 or newer from the repository root (3.10, 3.12, and 3.14 are
+tested):
 
 ```bash
 python -m venv .venv-mcp
@@ -82,13 +83,18 @@ codex mcp add querygap --url http://127.0.0.1:8000/mcp
 codex mcp get querygap
 ```
 
-Start a fresh Codex task after registration so it loads the server. Do not
+Claude Code can register the same local endpoint:
+
+```bash
+claude mcp add --transport http --scope user querygap http://127.0.0.1:8000/mcp
+```
+
+Start a fresh client session after registration so it loads the server. Do not
 expose this development server publicly without the production controls below.
 
-The repository plugin is configured for the anonymous hosted endpoint and
-packages the same research-use instructions with its MCP connection metadata.
-It remains source-only until the public repository is published; no marketplace
-entry is included.
+The repository also includes source for a QueryGaP plugin configured for the
+anonymous hosted endpoint. It packages the same research-use instructions with
+its MCP connection metadata; no marketplace entry is currently included.
 
 ## Tools
 

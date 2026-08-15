@@ -76,9 +76,8 @@ model must still ignore instruction-like content embedded in source metadata.
   abuse-resistant; the current repository query aggregates catalog tables.
 - Confirm redistribution/public-display permission for every exposed data
   class, particularly UK Biobank-derived metadata and participant summaries.
-- Complete the branded-domain DNS/TLS validation, publish privacy/support/terms
-  pages, and add standard authorization only if anonymous cost/abuse cannot be
-  kept within a deliberate budget.
+- Publish privacy/support/terms pages, and add standard authorization only if
+  anonymous cost/abuse cannot be kept within a deliberate budget.
 - Run database privilege tests, saturation/cancellation tests, MCP Inspector,
   and a live canary from each intended client. Unit and local transport tests do
   not establish hosted interoperability.

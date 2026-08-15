@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import stat
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -9,7 +9,7 @@ from querygap_mcp.quota import EmbeddingBudgetExceeded, SQLiteDailyEmbeddingBudg
 
 
 def test_sqlite_daily_budget_is_durable_and_resets_by_utc_day(tmp_path) -> None:
-    current = datetime(2026, 8, 13, 12, tzinfo=UTC)
+    current = datetime(2026, 8, 13, 12, tzinfo=timezone.utc)
     path = tmp_path / "budget.sqlite"
     budget = SQLiteDailyEmbeddingBudget(path, 2, now=lambda: current)
 
@@ -24,7 +24,7 @@ def test_sqlite_daily_budget_is_durable_and_resets_by_utc_day(tmp_path) -> None:
 
 
 def test_availability_check_does_not_consume_daily_budget(tmp_path) -> None:
-    current = datetime(2026, 8, 13, 12, tzinfo=UTC)
+    current = datetime(2026, 8, 13, 12, tzinfo=timezone.utc)
     budget = SQLiteDailyEmbeddingBudget(
         tmp_path / "budget.sqlite",
         1,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -15,7 +15,7 @@ from querygap_mcp.request_limit import (
 
 
 def test_request_limits_are_durable_and_reset_in_utc(tmp_path) -> None:
-    current = datetime(2026, 8, 13, 12, 34, 30, tzinfo=UTC)
+    current = datetime(2026, 8, 13, 12, 34, 30, tzinfo=timezone.utc)
     path = tmp_path / "requests.sqlite"
     limiter = SQLiteRequestLimiter(path, 2, 3, now=lambda: current)
 
@@ -36,7 +36,7 @@ def test_request_limits_are_durable_and_reset_in_utc(tmp_path) -> None:
 
 
 def test_concurrent_acquire_is_atomic(tmp_path) -> None:
-    current = datetime(2026, 8, 13, 12, tzinfo=UTC)
+    current = datetime(2026, 8, 13, 12, tzinfo=timezone.utc)
     limiter = SQLiteRequestLimiter(
         tmp_path / "requests.sqlite",
         requests_per_minute=7,

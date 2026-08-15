@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Protocol
 
@@ -28,7 +28,7 @@ class SQLiteDailyEmbeddingBudget:
 
     path: Path
     daily_limit: int
-    now: Callable[[], datetime] = lambda: datetime.now(UTC)
+    now: Callable[[], datetime] = lambda: datetime.now(timezone.utc)
 
     def __post_init__(self) -> None:
         if self.daily_limit < 1:
@@ -38,7 +38,7 @@ class SQLiteDailyEmbeddingBudget:
 
     def acquire(self) -> None:
         self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        day = self.now().astimezone(UTC).date().isoformat()
+        day = self.now().astimezone(timezone.utc).date().isoformat()
         try:
             with sqlite3.connect(self.path, timeout=2.0, isolation_level=None) as db:
                 os.chmod(self.path, 0o600)
@@ -75,7 +75,7 @@ class SQLiteDailyEmbeddingBudget:
     def check_available(self) -> None:
         """Fail when spent without incrementing the durable usage counter."""
         self.path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        day = self.now().astimezone(UTC).date().isoformat()
+        day = self.now().astimezone(timezone.utc).date().isoformat()
         try:
             with sqlite3.connect(self.path, timeout=2.0) as db:
                 os.chmod(self.path, 0o600)
