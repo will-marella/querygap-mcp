@@ -1,6 +1,8 @@
 # QueryGaP MCP
 
-QueryGaP gives MCP-capable assistants structured access to dbGaP and UK Biobank
+Use QueryGaP with ChatGPT and Claude directly in your browser!
+
+QueryGaP gives your assistant structured access to dbGaP and UK Biobank
 documentation metadata. Use it to resolve dbGaP studies, find variables,
 datasets, and document metadata within an exact study accession, and search or
 inspect UK Biobank fields—with source identifiers and canonical links in the
