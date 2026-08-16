@@ -109,6 +109,55 @@ def make_dependencies(
                 "variable_count": 1234,
             },
         ),
+        "search_aou": recorder.function(
+            "search_aou",
+            [
+                {
+                    "doc_key": "aou.doc.0123456789abcdef01234567",
+                    "search_role": "primary",
+                    "item_kind": "omop_concept",
+                    "title": "Diastolic blood pressure",
+                    "subtitle": "LOINC 8462-4",
+                    "domain_id": "Measurement",
+                    "vocabulary_id": "LOINC",
+                    "concept_code": "8462-4",
+                    "ehr_variable_role": "standard",
+                    "preferred_url": "https://databrowser.researchallofus.org/ehr/measurement/123",
+                    "preferred_link_specificity": "concept",
+                    "match_reasons": ["lexical", "semantic"],
+                    "semantic_score": 0.8,
+                    "score": 0.04,
+                }
+            ],
+        ),
+        "get_aou_details": recorder.function(
+            "get_aou_details",
+            {
+                "doc_key": "aou.doc.0123456789abcdef01234567",
+                "search_role": "primary",
+                "item_kind": "omop_concept",
+                "title": "Diastolic blood pressure",
+                "domain_id": "Measurement",
+                "vocabulary_id": "LOINC",
+                "concept_code": "8462-4",
+                "preferred_url": "https://databrowser.researchallofus.org/ehr/measurement/123",
+                "details": {
+                    "identifiers": [
+                        {
+                            "identifier_system": "loinc",
+                            "identifier_value": "8462-4",
+                        }
+                    ],
+                    "links": [
+                        {
+                            "url": "https://databrowser.researchallofus.org/ehr/measurement/123"
+                        },
+                        {"url": "javascript:alert(1)"},
+                    ],
+                    "relationships": [],
+                },
+            },
+        ),
     }
     defaults.update(overrides)
     return RetrievalDependencies(**defaults)

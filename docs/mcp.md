@@ -63,6 +63,13 @@ Optional bounded database settings are `QG_MCP_DB_POOL_MIN` (default 1),
 5), `QG_MCP_DB_STATEMENT_TIMEOUT_MS` (default 10000), and
 `QG_MCP_DB_LOCK_TIMEOUT_MS` (default 1000).
 
+The optional All of Us vertical uses the same dedicated metadata database and
+connection pool. Load its public catalog tables under the `aou` schema, apply
+the updated role policy, and set `QG_MCP_AOU_ENABLED=1`. Startup then verifies
+the exact AoU relation/column/index allowlist, schema privileges, active
+snapshot, embedding cache, and `pg_trgm` support. Do not set the flag before
+those checks can pass.
+
 The hosted design uses QueryGaP's embedding key, never a key supplied by the
 person using the MCP client. Query text is sent to OpenAI only for `semantic`
 or `hybrid` retrieval; `keyword` retrieval has no model-provider egress. Set
@@ -104,9 +111,20 @@ its MCP connection metadata; no marketplace entry is currently included.
 - `search_ukb_fields`
 - `get_ukb_field`
 
+With `QG_MCP_AOU_ENABLED=1`:
+
+- `search_aou_catalog`
+- `get_aou_item`
+
 All tools are read-only, idempotent, bounded, and return structured content.
 dbGaP catalog searches require a full versioned study accession. UK Biobank is
 kept as a separate field-centric source.
+
+All of Us is also a separate vertical. Search results label primary/grouped
+records as variables and navigation/support records as context. Detail lookup
+uses the opaque result ID returned by search and can return identifiers, links,
+survey choices, scale membership, physical-measurement details, and OMOP
+relationships. It reads public Data Browser metadata only.
 
 Retrieval is entity-specific. Variables and datasets use PostgreSQL full-text
 search for `keyword`; UK Biobank adds exact field-ID and stored-alias boosts.

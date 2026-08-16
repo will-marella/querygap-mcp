@@ -125,15 +125,14 @@ def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:
 
 
 @contextmanager
-def read_cursor() -> Iterator[RealDictCursor]:
-    """Yield a guarded cursor and roll its transaction back unconditionally."""
+def _guarded_cursor(cursor_factory: object | None) -> Iterator[object]:
     settings = settings_from_environment()
     pool = _get_pool()
     connection = pool.getconn()
     cursor = None
     close_connection = False
     try:
-        cursor = connection.cursor(cursor_factory=RealDictCursor)
+        cursor = connection.cursor(cursor_factory=cursor_factory)
         cursor.execute("BEGIN READ ONLY")
         cursor.execute("SET LOCAL search_path = pg_catalog, public")
         # Values are validated bounded integers, so interpolation cannot add SQL.
@@ -155,6 +154,22 @@ def read_cursor() -> Iterator[RealDictCursor]:
         pool.putconn(connection, close=close_connection)
 
 
+@contextmanager
+def read_cursor() -> Iterator[RealDictCursor]:
+    """Yield a guarded dictionary cursor for the original catalog adapters."""
+
+    with _guarded_cursor(RealDictCursor) as cursor:
+        yield cursor  # type: ignore[misc]
+
+
+@contextmanager
+def tuple_read_cursor() -> Iterator[object]:
+    """Yield the same guarded transaction with a standard tuple cursor."""
+
+    with _guarded_cursor(None) as cursor:
+        yield cursor
+
+
 def close_pool() -> None:
     """Close the process-local MCP pool, primarily for graceful shutdown/tests."""
     global _pool
@@ -170,4 +185,5 @@ __all__ = [
     "close_pool",
     "read_cursor",
     "settings_from_environment",
+    "tuple_read_cursor",
 ]

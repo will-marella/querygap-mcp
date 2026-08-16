@@ -15,12 +15,16 @@ flowchart LR
 
 ## Implemented in both runtimes
 
-- Five fixed tools; no arbitrary SQL, URL fetching, ingestion, writes, chat,
+- Five fixed base tools and two optional All of Us public-metadata tools; no
+  arbitrary SQL, URL fetching, ingestion, writes, participant data, chat,
   billing, user records, or deployment operations.
 - A mandatory `QG_MCP_DATABASE_URL`, separate connection pool, read-only
   transactions, pinned `pg_catalog, public` search path, and bounded statement
   and lock timeouts. The repository `.env` and web app `DATABASE_URL` are never
   loaded by the MCP package.
+- Optional AoU tables remain in the same dedicated catalog database under an
+  explicit `aou` schema. `QG_MCP_AOU_ENABLED=1` adds exact schema, relation,
+  index, active-snapshot, and embedding-cache preflight checks.
 - Full versioned dbGaP study scoping and a maximum of 20 results per search.
 - Normalized query limits, a 64 KiB HTTP body limit, a 128 KiB structured-result
   limit, bounded text fields, and canonical URL allowlists.
@@ -39,8 +43,8 @@ model must still ignore instruction-like content embedded in source metadata.
 - A separate Railway project, service, PostgreSQL database, and persistent
   budget volume; the existing QueryGaP web deployment is unchanged.
 - A `NOINHERIT`, `SELECT`-only, connection-limited database role whose startup
-  audit has zero warnings and whose allowlist contains exactly eight catalog
-  relations.
+  audit has zero warnings and whose deployed allowlist contains only the
+  configured catalog relations.
 - Exact Host/Origin allowlists, HTTPS, public liveness/readiness, explicit
   anonymous mode enabled after bearer-gated validation, and no `/mcp/`
   redirect ambiguity.

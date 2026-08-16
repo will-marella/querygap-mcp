@@ -101,6 +101,17 @@ with no authentication.
 | `search_ukb_fields` | Search the UK Biobank field dictionary by concept, field ID, or stored aliases. |
 | `get_ukb_field` | Retrieve an exact UK Biobank field and optional instance summaries. |
 
+When the catalog database includes the isolated `aou` schema and
+`QG_MCP_AOU_ENABLED=1`, the same MCP additionally exposes:
+
+| Tool | Purpose |
+| --- | --- |
+| `search_aou_catalog` | Search public All of Us variables and related navigation/support metadata. |
+| `get_aou_item` | Retrieve one AoU result's identifiers, links, answer choices, scale membership, and concept relationships. |
+
+AoU results explicitly distinguish variables from contextual records. These
+tools never connect to participant-level All of Us Workbench data.
+
 For dbGaP, QueryGaP resolves the study first and preserves the full versioned
 accession throughout retrieval. UK Biobank remains a separate, field-centric
 source.

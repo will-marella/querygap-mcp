@@ -3,16 +3,30 @@
 -- limited to check names, PASS/WARN/FAIL, and non-sensitive remediation
 -- summaries.
 
-WITH required_relations(relation_name) AS (
+WITH required_relations(schema_name, relation_name) AS (
     VALUES
-        ('studies'),
-        ('datasets'),
-        ('variables'),
-        ('variable_reports'),
-        ('documents'),
-        ('ukb_search_docs_fields'),
-        ('ukb_field_page_data'),
-        ('ukb_field_instance_stats')
+        ('public', 'studies'),
+        ('public', 'datasets'),
+        ('public', 'variables'),
+        ('public', 'variable_reports'),
+        ('public', 'documents'),
+        ('public', 'ukb_search_docs_fields'),
+        ('public', 'ukb_field_page_data'),
+        ('public', 'ukb_field_instance_stats'),
+        ('aou', 'snapshots'),
+        ('aou', 'active_snapshots'),
+        ('aou', 'items'),
+        ('aou', 'identifiers'),
+        ('aou', 'edges'),
+        ('aou', 'links'),
+        ('aou', 'program_measurement_details'),
+        ('aou', 'survey_scales'),
+        ('aou', 'survey_scale_memberships'),
+        ('aou', 'survey_scale_response_weights'),
+        ('aou', 'search_docs'),
+        ('aou', 'search_doc_members'),
+        ('aou', 'aliases'),
+        ('aou', 'embedding_cache')
 ),
 target_role AS (
     SELECT r.oid AS role_oid
@@ -39,8 +53,9 @@ role_state AS (
 ),
 relation_state AS (
     SELECT
+        rr.schema_name,
         rr.relation_name,
-        to_regclass(format('public.%I', rr.relation_name)) AS relation_oid
+        to_regclass(format('%I.%I', rr.schema_name, rr.relation_name)) AS relation_oid
     FROM required_relations rr
 ),
 unexpected_access AS (
@@ -51,8 +66,7 @@ unexpected_access AS (
     WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
       AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
       AND NOT (
-          n.nspname = 'public'
-          AND c.oid = ANY (
+          c.oid = ANY (
               ARRAY(
                   SELECT rs.relation_oid
                   FROM relation_state rs
@@ -73,8 +87,7 @@ unexpected_column_access AS (
       AND attribute.attnum > 0
       AND NOT attribute.attisdropped
       AND NOT (
-          n.nspname = 'public'
-          AND c.oid = ANY (
+          c.oid = ANY (
               ARRAY(
                   SELECT rs.relation_oid
                   FROM relation_state rs
@@ -203,7 +216,7 @@ checks(check_name, passed, detail) AS (
                    (SELECT role_oid FROM target_role), relation_oid, 'SELECT'
                ), false)
         ),
-        'Grant SELECT on exactly the eight required catalog relations.'
+        'Grant SELECT on exactly the required public and AoU catalog relations.'
     UNION ALL
     SELECT
         'required relations are read only',
@@ -220,12 +233,12 @@ checks(check_name, passed, detail) AS (
     SELECT
         'no other non-system relations selectable',
         NOT EXISTS (SELECT 1 FROM unexpected_access),
-        'Remove effective SELECT outside the eight-relation allowlist.'
+        'Remove effective SELECT outside the catalog relation allowlist.'
     UNION ALL
     SELECT
         'no other non-system columns selectable',
         NOT EXISTS (SELECT 1 FROM unexpected_column_access),
-        'Remove effective column-level SELECT outside the eight-relation allowlist.'
+        'Remove effective column-level SELECT outside the catalog relation allowlist.'
     UNION ALL
     SELECT
         'no effective writes on non-system relations',
@@ -248,7 +261,10 @@ checks(check_name, passed, detail) AS (
             SELECT 1
             FROM executable_routines
             WHERE prosecdef
-               OR (extension_name <> '' AND extension_name <> 'vector')
+               OR (
+                    extension_name <> ''
+                AND extension_name NOT IN ('vector', 'pg_trgm')
+               )
                OR (extension_name = '' AND NOT lanpltrusted)
         ),
         'Revoke unsafe routine execution or isolate the MCP catalog database.'
@@ -262,6 +278,16 @@ checks(check_name, passed, detail) AS (
             (SELECT role_oid FROM target_role), 'public', 'CREATE'
         ), false),
         'Grant USAGE only; revoke CREATE directly and from PUBLIC if PUBLIC supplies it.'
+    UNION ALL
+    SELECT
+        'aou schema usable but not creatable',
+        COALESCE(has_schema_privilege(
+            (SELECT role_oid FROM target_role), 'aou', 'USAGE'
+        ), false)
+        AND NOT COALESCE(has_schema_privilege(
+            (SELECT role_oid FROM target_role), 'aou', 'CREATE'
+        ), false),
+        'Grant USAGE only on aou and revoke CREATE.'
     UNION ALL
     SELECT
         'database connect allowed',

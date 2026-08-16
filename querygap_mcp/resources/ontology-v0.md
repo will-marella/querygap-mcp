@@ -43,6 +43,32 @@ UK Biobank is a separate, field-centric source rather than a dbGaP study.
 - **Instance summary**: optional participant and descriptive-statistic metadata
   for a field instance.
 
+## All of Us entities and identity
+
+All of Us is a separate public-metadata vertical. QueryGaP does not connect to
+participant-level Workbench data.
+
+- **Search result**: identified by an opaque `aou.doc...` result ID. Use that
+  ID with `get_aou_item`; do not infer an OMOP concept ID from it.
+- **Variable**: a result with `is_variable: true`. This includes EHR concepts,
+  grouped survey variables, program physical measurements, and Fitbit metrics.
+  EHR concepts are variable-like data elements in the OMOP row model, even
+  though they are not stored as one physical database column per concept.
+- **EHR concept variable**: an OMOP concept with a vocabulary and concept code.
+  Its `ehr_variable_role` distinguishes standard, classification, and source
+  concepts. Mappings and relationships connect source codes to harmonized
+  concepts without collapsing their identities.
+- **Survey variable**: a grouped question identity. Versioned question
+  occurrences, answer options, and scale memberships are related metadata.
+- **Navigation/support record**: an instrument, module, scale, answer option,
+  domain, or documentation record that helps locate or interpret variables but
+  is explicitly returned with `is_variable: false`.
+
+AoU identifiers can include OMOP concept IDs, LOINC, SNOMED CT, PPI, Fitbit,
+ICD, CPT, HCPCS, RxNorm, and NDC codes. One variable can therefore have several
+identifiers and links; these are identifiers for the same searchable record or
+related mappings, not automatically four independent variables.
+
 ## Normalization and ambiguity
 
 - Dataset participant suffixes are removed when producing the normalized
@@ -54,6 +80,8 @@ UK Biobank is a separate, field-centric source rather than a dbGaP study.
   and dataset coverage. Full versioned accessions are preserved.
 - UK Biobank alias expansion is bounded, so some middle instance/array
   combinations may not be indexed as exact aliases.
+- AoU search spans an explicitly selected active snapshot. Result IDs from an
+  inactive snapshot are not hydrated as current results.
 
 ## Provenance status
 
@@ -63,3 +91,7 @@ retrieval timestamp, parser version, or source checksum for dbGaP records.
 UK Biobank downloads had checksum sidecars during ingestion, but that lineage is
 not retained in the searchable database. Responses disclose these limitations
 rather than inventing provenance.
+
+AoU detail responses retain snapshot, source-locator, checksum, identifier,
+link, and relationship metadata where the public source supplied it. A source
+link documents or locates an element; it does not grant Workbench access.

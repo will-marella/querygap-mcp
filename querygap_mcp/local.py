@@ -120,6 +120,169 @@ _REQUIRED_INDEXED_COLUMNS: Mapping[str, frozenset[str]] = {
     "ukb_field_page_data": frozenset({"field_id"}),
     "ukb_field_instance_stats": frozenset({"field_id"}),
 }
+_AOU_REQUIRED_RELATION_COLUMNS: Mapping[str, frozenset[str]] = {
+    "snapshots": frozenset(
+        {
+            "snapshot_key",
+            "release_id",
+            "release_label",
+            "extracted_at_utc",
+            "source_commit_sha",
+            "coverage_status",
+            "selection_method",
+        }
+    ),
+    "active_snapshots": frozenset(
+        {"source_namespace", "snapshot_key", "activated_at_utc"}
+    ),
+    "items": frozenset(
+        {
+            "item_key",
+            "canonical_key",
+            "item_kind",
+            "name",
+            "description",
+            "domain_id",
+            "vocabulary_id",
+            "concept_code",
+            "standard_concept",
+            "survey_concept_id",
+            "survey_path",
+            "help_text",
+            "attributes",
+            "source_locator",
+            "source_record_sha256",
+        }
+    ),
+    "identifiers": frozenset(
+        {
+            "snapshot_key",
+            "item_key",
+            "identifier_system",
+            "identifier_value",
+            "identifier_role",
+            "is_primary",
+        }
+    ),
+    "edges": frozenset(
+        {
+            "edge_key",
+            "from_item_key",
+            "predicate",
+            "to_item_key",
+            "qualifier_item_key",
+            "ordinal",
+            "assertion_status",
+            "match_method",
+            "source_locator",
+            "evidence_text",
+        }
+    ),
+    "links": frozenset(
+        {
+            "link_key",
+            "item_key",
+            "link_type",
+            "target_specificity",
+            "url",
+            "label",
+            "is_preferred",
+        }
+    ),
+    "program_measurement_details": frozenset({"item_key"}),
+    "survey_scales": frozenset(
+        {"scale_key", "snapshot_key", "sheet_name", "scale_name"}
+    ),
+    "survey_scale_memberships": frozenset(
+        {
+            "membership_key",
+            "snapshot_key",
+            "scale_key",
+            "variable_item_key",
+            "question_code",
+            "question_text",
+            "ordinal",
+            "duplicate_ordinal",
+            "reverse_scored",
+            "variable_match_method",
+            "qa_flags",
+        }
+    ),
+    "survey_scale_response_weights": frozenset(
+        {
+            "response_weight_key",
+            "snapshot_key",
+            "membership_key",
+            "answer_item_key",
+            "response_code",
+            "response_label",
+            "weight_text",
+            "weight_value",
+            "derived_weight_value",
+            "derived_weight_method",
+            "ordinal",
+            "answer_match_method",
+        }
+    ),
+    "search_docs": frozenset(
+        {
+            "doc_key",
+            "item_key",
+            "snapshot_key",
+            "search_group_key",
+            "search_role",
+            "item_kind",
+            "is_lexically_searchable",
+            "is_embeddable",
+            "title",
+            "subtitle",
+            "native_id",
+            "concept_code",
+            "domain_id",
+            "vocabulary_id",
+            "preferred_link_key",
+            "content_sha256",
+            "search_tsv",
+        }
+    ),
+    "search_doc_members": frozenset({"doc_key", "item_key"}),
+    "aliases": frozenset(
+        {"snapshot_key", "item_key", "normalized_alias", "alias_type"}
+    ),
+    "embedding_cache": frozenset(
+        {"content_sha256", "embedding_model", "dimensions", "embedding"}
+    ),
+}
+_AOU_REQUIRED_INDEXED_COLUMNS: Mapping[str, frozenset[str]] = {
+    "snapshots": frozenset({"snapshot_key"}),
+    "active_snapshots": frozenset({"source_namespace"}),
+    "items": frozenset({"item_key", "snapshot_key", "item_kind"}),
+    "identifiers": frozenset(
+        {"snapshot_key", "item_key", "identifier_system", "identifier_value"}
+    ),
+    "edges": frozenset({"from_item_key", "to_item_key", "predicate"}),
+    "links": frozenset({"item_key"}),
+    "program_measurement_details": frozenset({"item_key"}),
+    "survey_scales": frozenset({"scale_key", "snapshot_key"}),
+    "survey_scale_memberships": frozenset(
+        {"scale_key", "variable_item_key"}
+    ),
+    "survey_scale_response_weights": frozenset({"membership_key"}),
+    "search_docs": frozenset(
+        {"doc_key", "item_key", "snapshot_key", "search_tsv"}
+    ),
+    "search_doc_members": frozenset({"doc_key", "item_key"}),
+    "aliases": frozenset({"snapshot_key", "normalized_alias", "item_key"}),
+    "embedding_cache": frozenset(
+        {"content_sha256", "embedding_model", "embedding"}
+    ),
+}
+_AOU_REQUIRED_INDEX_NAMES = frozenset(
+    {
+        "idx_aou_embedding_cache_ivfflat",
+        "idx_aou_search_docs_title_trgm",
+    }
+)
 
 
 class LocalConfigurationError(RuntimeError):
@@ -232,6 +395,25 @@ def _connect_for_preflight() -> Any:
 
 def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
     warnings: list[str] = []
+    aou_enabled = os.environ.get("QG_MCP_AOU_ENABLED", "").strip() == "1"
+    required_columns = {
+        **{("public", name): columns for name, columns in _REQUIRED_RELATION_COLUMNS.items()},
+        **(
+            {("aou", name): columns for name, columns in _AOU_REQUIRED_RELATION_COLUMNS.items()}
+            if aou_enabled
+            else {}
+        ),
+    }
+    required_indexes = {
+        **{("public", name): columns for name, columns in _REQUIRED_INDEXED_COLUMNS.items()},
+        **(
+            {("aou", name): columns for name, columns in _AOU_REQUIRED_INDEXED_COLUMNS.items()}
+            if aou_enabled
+            else {}
+        ),
+    }
+    public_relations = list(_REQUIRED_RELATION_COLUMNS)
+    aou_relations = list(_AOU_REQUIRED_RELATION_COLUMNS) if aou_enabled else []
     try:
         with connection.cursor() as cursor:
             cursor.execute("SHOW transaction_read_only")
@@ -310,20 +492,41 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                     "arbitrary SQL and keeps connection and statement limits enforced."
                 )
 
+            if aou_enabled:
+                cursor.execute(
+                    """
+                    SELECT
+                        has_schema_privilege(current_user, 'aou', 'USAGE'),
+                        has_schema_privilege(current_user, 'aou', 'CREATE')
+                    """
+                )
+                aou_schema_privileges = cursor.fetchone()
+                if (
+                    not aou_schema_privileges
+                    or not bool(aou_schema_privileges[0])
+                    or bool(aou_schema_privileges[1])
+                ):
+                    raise PreflightError(
+                        "Database role must have USAGE but not CREATE on the AoU schema."
+                    )
+
             cursor.execute(
                 """
-                SELECT table_name, column_name
+                SELECT table_schema, table_name, column_name
                 FROM information_schema.columns
-                WHERE table_schema = 'public' AND table_name = ANY(%s)
+                WHERE (table_schema = 'public' AND table_name = ANY(%s))
+                   OR (table_schema = 'aou' AND table_name = ANY(%s))
                 """,
-                (list(_REQUIRED_RELATION_COLUMNS),),
+                (public_relations, aou_relations),
             )
-            actual_columns: dict[str, set[str]] = {}
-            for table_name, column_name in cursor.fetchall():
-                actual_columns.setdefault(table_name, set()).add(column_name)
+            actual_columns: dict[tuple[str, str], set[str]] = {}
+            for schema_name, table_name, column_name in cursor.fetchall():
+                actual_columns.setdefault((schema_name, table_name), set()).add(
+                    column_name
+                )
             missing = {
                 relation: columns - actual_columns.get(relation, set())
-                for relation, columns in _REQUIRED_RELATION_COLUMNS.items()
+                for relation, columns in required_columns.items()
                 if columns - actual_columns.get(relation, set())
             }
             if missing:
@@ -333,24 +536,29 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
 
             cursor.execute(
                 """
-                SELECT c.relname, c.relkind
+                SELECT n.nspname, c.relname, c.relkind
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE n.nspname = 'public' AND c.relname = ANY(%s)
+                WHERE (n.nspname = 'public' AND c.relname = ANY(%s))
+                   OR (n.nspname = 'aou' AND c.relname = ANY(%s))
                 """,
-                (list(_REQUIRED_RELATION_COLUMNS),),
+                (public_relations, aou_relations),
             )
-            relation_kinds = dict(cursor.fetchall())
-            if set(relation_kinds) != set(_REQUIRED_RELATION_COLUMNS) or any(
+            relation_kinds = {
+                (schema_name, relation): kind
+                for schema_name, relation, kind in cursor.fetchall()
+            }
+            if set(relation_kinds) != set(required_columns) or any(
                 kind not in {"r", "p", "m"} for kind in relation_kinds.values()
             ):
                 raise PreflightError("Required MCP relations have unsupported relation kinds.")
 
             cursor.execute(
                 """
-                SELECT table_name, column_name
+                SELECT table_schema, table_name, column_name
                 FROM (
                     SELECT DISTINCT
+                        namespace.nspname AS table_schema,
                         table_class.relname AS table_name,
                         attribute.attname AS column_name
                     FROM pg_index index_record
@@ -361,28 +569,87 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                     JOIN pg_attribute attribute
                       ON attribute.attrelid = table_class.oid
                      AND attribute.attnum = key_column.attribute_number
-                    WHERE namespace.nspname = 'public'
-                      AND table_class.relname = ANY(%s)
+                    WHERE (
+                           (
+                                namespace.nspname = 'public'
+                            AND table_class.relname = ANY(%s)
+                           )
+                        OR (
+                                namespace.nspname = 'aou'
+                            AND table_class.relname = ANY(%s)
+                           )
+                    )
                       AND index_record.indisvalid
                       AND index_record.indisready
                 ) indexed_columns
                 """,
-                (list(_REQUIRED_INDEXED_COLUMNS),),
+                (
+                    list(_REQUIRED_INDEXED_COLUMNS),
+                    list(_AOU_REQUIRED_INDEXED_COLUMNS) if aou_enabled else [],
+                ),
             )
-            actual_indexed: dict[str, set[str]] = {}
-            for table_name, column_name in cursor.fetchall():
-                actual_indexed.setdefault(table_name, set()).add(column_name)
+            actual_indexed: dict[tuple[str, str], set[str]] = {}
+            for schema_name, table_name, column_name in cursor.fetchall():
+                actual_indexed.setdefault((schema_name, table_name), set()).add(
+                    column_name
+                )
             missing_indexes = {
                 relation: columns - actual_indexed.get(relation, set())
-                for relation, columns in _REQUIRED_INDEXED_COLUMNS.items()
+                for relation, columns in required_indexes.items()
                 if columns - actual_indexed.get(relation, set())
             }
             if missing_indexes:
                 raise PreflightError("Database schema is missing required MCP indexes.")
 
+            if aou_enabled:
+                cursor.execute(
+                    """
+                    SELECT index_class.relname
+                    FROM pg_index index_record
+                    JOIN pg_class index_class
+                      ON index_class.oid = index_record.indexrelid
+                    JOIN pg_namespace namespace
+                      ON namespace.oid = index_class.relnamespace
+                    WHERE namespace.nspname = 'aou'
+                      AND index_class.relname = ANY(%s)
+                      AND index_record.indisvalid
+                      AND index_record.indisready
+                    """,
+                    (list(_AOU_REQUIRED_INDEX_NAMES),),
+                )
+                if {row[0] for row in cursor.fetchall()} != set(
+                    _AOU_REQUIRED_INDEX_NAMES
+                ):
+                    raise PreflightError(
+                        "Database schema is missing required AoU search indexes."
+                    )
+                cursor.execute(
+                    """
+                    SELECT
+                        EXISTS (
+                            SELECT 1
+                            FROM aou.active_snapshots AS active
+                            JOIN aou.search_docs AS document
+                              ON document.snapshot_key = active.snapshot_key
+                        ),
+                        EXISTS (
+                            SELECT 1
+                            FROM aou.embedding_cache
+                            WHERE dimensions = 1536
+                        ),
+                        to_regprocedure('similarity(text,text)') IS NOT NULL
+                    """
+                )
+                aou_data = cursor.fetchone()
+                if not aou_data or not all(bool(value) for value in aou_data):
+                    raise PreflightError(
+                        "The AoU schema lacks an active searchable snapshot, "
+                        "embeddings, or pg_trgm."
+                    )
+
             cursor.execute(
                 """
-                SELECT relname,
+                SELECT n.nspname, relname,
                        has_table_privilege(current_user, c.oid, 'SELECT') AS can_select,
                        has_table_privilege(
                            current_user,
@@ -391,15 +658,16 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                        ) AS can_write
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
-                WHERE n.nspname = 'public' AND relname = ANY(%s)
+                WHERE (n.nspname = 'public' AND relname = ANY(%s))
+                   OR (n.nspname = 'aou' AND relname = ANY(%s))
                 """,
-                (list(_REQUIRED_RELATION_COLUMNS),),
+                (public_relations, aou_relations),
             )
             privileges = {
-                name: (can_select, can_write)
-                for name, can_select, can_write in cursor.fetchall()
+                (schema_name, name): (can_select, can_write)
+                for schema_name, name, can_select, can_write in cursor.fetchall()
             }
-            if set(privileges) != set(_REQUIRED_RELATION_COLUMNS):
+            if set(privileges) != set(required_columns):
                 raise PreflightError("Database schema is missing required MCP relations.")
             if any(not can_select or can_write for can_select, can_write in privileges.values()):
                 raise PreflightError("Database role is not SELECT-only on required MCP relations.")
@@ -411,11 +679,14 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
                   AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
-                  AND NOT (n.nspname = 'public' AND c.relname = ANY(%s))
+                  AND NOT (
+                         (n.nspname = 'public' AND c.relname = ANY(%s))
+                      OR (n.nspname = 'aou' AND c.relname = ANY(%s))
+                  )
                   AND has_table_privilege(current_user, c.oid, 'SELECT')
                 LIMIT 1
                 """,
-                (list(_REQUIRED_RELATION_COLUMNS),),
+                (public_relations, aou_relations),
             )
             if cursor.fetchone() is not None:
                 raise PreflightError("Database role can read relations outside the MCP allowlist.")
@@ -430,13 +701,16 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                   AND c.relkind IN ('r', 'p', 'v', 'm', 'f')
                   AND attribute.attnum > 0
                   AND NOT attribute.attisdropped
-                  AND NOT (n.nspname = 'public' AND c.relname = ANY(%s))
+                  AND NOT (
+                         (n.nspname = 'public' AND c.relname = ANY(%s))
+                      OR (n.nspname = 'aou' AND c.relname = ANY(%s))
+                  )
                   AND has_column_privilege(
                       current_user, c.oid, attribute.attnum, 'SELECT'
                   )
                 LIMIT 1
                 """,
-                (list(_REQUIRED_RELATION_COLUMNS),),
+                (public_relations, aou_relations),
             )
             if cursor.fetchone() is not None:
                 raise PreflightError(
@@ -522,7 +796,7 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
             )
             inherited_safe_routine = False
             for extension_name, trusted_language, security_definer in cursor.fetchall():
-                if extension_name == "vector" and not security_definer:
+                if extension_name in {"vector", "pg_trgm"} and not security_definer:
                     continue
                 if extension_name or security_definer or not trusted_language:
                     raise PreflightError("Database role can execute an unsafe routine.")

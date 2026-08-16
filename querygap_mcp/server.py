@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import os
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal, Mapping, Protocol
@@ -34,6 +35,14 @@ request unless the user explicitly asks for broader exploration, and do not
 repeat a successful call with the same arguments.
 For the complete data model and search rules, read querygap://ontology/v0 and
 querygap://retrieval-contract/v0.
+"""
+
+AOU_SERVER_INSTRUCTIONS = """\
+The optional All of Us vertical searches public Data Browser metadata only; it
+never queries participant-level Workbench data. AoU search results explicitly
+mark variables versus navigation/support records. Use the returned result ID
+with get_aou_item when identifiers, links, answer choices, scale membership,
+or concept relationships are needed.
 """
 
 READ_ONLY = ToolAnnotations(
@@ -112,18 +121,35 @@ def _read_resource(filename: str) -> str:
     return (_RESOURCE_DIRECTORY / filename).read_text(encoding="utf-8")
 
 
-def create_server(service: QueryGaPService | None = None) -> MCPServer:
+def create_server(
+    service: QueryGaPService | None = None,
+    *,
+    enable_aou: bool | None = None,
+) -> MCPServer:
     """Create an MCP server backed by ``service``.
 
     Supplying a service keeps the protocol layer independently testable. When
     omitted, the concrete QueryGaP service is constructed once for this server.
     """
     querygap = service if service is not None else _new_service()
+    if enable_aou is None:
+        if service is None:
+            enable_aou = os.environ.get("QG_MCP_AOU_ENABLED", "").strip() == "1"
+        else:
+            enable_aou = all(
+                callable(getattr(querygap, method_name, None))
+                for method_name in ("search_aou_catalog", "get_aou_item")
+            )
+    sources = "public dbGaP and UK Biobank metadata"
+    instructions = SERVER_INSTRUCTIONS
+    if enable_aou:
+        sources = "public dbGaP, UK Biobank, and All of Us metadata"
+        instructions = f"{SERVER_INSTRUCTIONS}\n{AOU_SERVER_INSTRUCTIONS}"
     server = MCPServer(
         name="querygap",
         title="QueryGaP",
-        description="Read-only search over public dbGaP and UK Biobank metadata.",
-        instructions=SERVER_INSTRUCTIONS,
+        description=f"Read-only search over {sources}.",
+        instructions=instructions,
         version="0.1.0",
     )
 
@@ -227,6 +253,46 @@ def create_server(service: QueryGaPService | None = None) -> MCPServer:
             field_id=field_id,
             include_instance_summaries=include_instance_summaries,
         )
+
+    if enable_aou:
+
+        @server.tool(
+            name="search_aou_catalog",
+            title="Search the All of Us public catalog",
+            annotations=READ_ONLY,
+            structured_output=True,
+        )
+        async def search_aou_catalog(
+            query: str,
+            method: Literal["keyword", "semantic", "hybrid"] = "hybrid",
+            limit: SearchLimit = 10,
+        ) -> dict[str, Any]:
+            """Search public AoU variables plus useful navigation/support records.
+
+            Results mark ``is_variable`` explicitly. This tool searches metadata,
+            never participant-level All of Us Workbench data.
+            """
+            return await _call_service(
+                querygap,
+                "search_aou_catalog",
+                query=query,
+                method=method,
+                limit=limit,
+            )
+
+        @server.tool(
+            name="get_aou_item",
+            title="Get an All of Us catalog item",
+            annotations=READ_ONLY,
+            structured_output=True,
+        )
+        async def get_aou_item(result_id: str) -> dict[str, Any]:
+            """Hydrate one AoU result with IDs, links, choices, and relationships."""
+            return await _call_service(
+                querygap,
+                "get_aou_item",
+                result_id=result_id,
+            )
 
     @server.resource(
         "querygap://ontology/v0",

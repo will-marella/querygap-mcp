@@ -13,6 +13,7 @@ from typing import Any, Literal, TypedDict
 DbgapCatalogKind = Literal["variable", "dataset", "document"]
 DbgapSearchMethod = Literal["keyword", "semantic", "hybrid"]
 UkbSearchMethod = Literal["keyword", "hybrid"]
+AouSearchMethod = Literal["keyword", "semantic", "hybrid"]
 JsonObject = dict[str, Any]
 
 
@@ -23,9 +24,9 @@ RETRIEVAL_CONTRACT_RESOURCE_URI = "querygap://retrieval-contract/v0"
 class Provenance(TypedDict):
     source_system: str
     source_url: str | None
-    snapshot_id: None
+    snapshot_id: str | None
     fetched_at: str | None
-    checksum: None
+    checksum: str | None
     status: str
 
 

@@ -149,15 +149,16 @@ class FakeConnection:
 
 def _passing_database_responses() -> list[object]:
     columns = [
-        (relation, column)
+        ("public", relation, column)
         for relation, names in local._REQUIRED_RELATION_COLUMNS.items()
         for column in names
     ]
     privileges = [
-        (relation, True, False) for relation in local._REQUIRED_RELATION_COLUMNS
+        ("public", relation, True, False)
+        for relation in local._REQUIRED_RELATION_COLUMNS
     ]
     indexed_columns = [
-        (relation, column)
+        ("public", relation, column)
         for relation, names in local._REQUIRED_INDEXED_COLUMNS.items()
         for column in names
     ]
@@ -185,7 +186,10 @@ def _passing_database_responses() -> list[object]:
         (False,),
         (False, False, False),
         columns,
-        [(relation, "r") for relation in local._REQUIRED_RELATION_COLUMNS],
+        [
+            ("public", relation, "r")
+            for relation in local._REQUIRED_RELATION_COLUMNS
+        ],
         indexed_columns,
         privileges,
         None,
@@ -193,8 +197,41 @@ def _passing_database_responses() -> list[object]:
         (0,),
         None,
         None,
-        [("vector", False, False)],
+        [("vector", False, False), ("pg_trgm", False, False)],
         (True,),
+    ]
+
+
+def _passing_aou_database_responses() -> list[object]:
+    responses = _passing_database_responses()
+    columns = responses[4] + [
+        ("aou", relation, column)
+        for relation, names in local._AOU_REQUIRED_RELATION_COLUMNS.items()
+        for column in names
+    ]
+    relation_kinds = responses[5] + [
+        ("aou", relation, "r")
+        for relation in local._AOU_REQUIRED_RELATION_COLUMNS
+    ]
+    indexed_columns = responses[6] + [
+        ("aou", relation, column)
+        for relation, names in local._AOU_REQUIRED_INDEXED_COLUMNS.items()
+        for column in names
+    ]
+    privileges = responses[7] + [
+        ("aou", relation, True, False)
+        for relation in local._AOU_REQUIRED_RELATION_COLUMNS
+    ]
+    return [
+        *responses[:4],
+        (True, False),
+        columns,
+        relation_kinds,
+        indexed_columns,
+        [(name,) for name in local._AOU_REQUIRED_INDEX_NAMES],
+        (True, True, True),
+        privileges,
+        *responses[8:],
     ]
 
 
@@ -224,6 +261,23 @@ def test_preflight_checks_database_and_embedding_provider(
     assert "has_sequence_privilege(" in executed_sql
     assert "'select,usage,update'" in executed_sql
     assert "has_database_privilege(current_user, current_database(), 'create')" in executed_sql
+
+
+def test_preflight_checks_enabled_aou_schema(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    connection = FakeConnection(_passing_aou_database_responses())
+    monkeypatch.setenv("QG_MCP_AOU_ENABLED", "1")
+    monkeypatch.setenv("QG_MCP_EXPECTED_DB_ROLE", "querygap_mcp_ro")
+    monkeypatch.setenv("QG_MCP_EMBEDDINGS_ENABLED", "0")
+    monkeypatch.setattr(local, "_connect_for_preflight", lambda: connection)
+
+    report = local.run_preflight()
+
+    assert report.embeddings == "disabled explicitly; keyword retrieval only"
+    executed_sql = "\n".join(connection.statements).lower()
+    assert "has_schema_privilege(current_user, 'aou', 'usage')" in executed_sql
+    assert "from aou.active_snapshots" in executed_sql
 
 
 def test_preflight_warns_but_does_not_fail_on_inherited_temp(
@@ -402,7 +456,7 @@ def test_preflight_rejects_role_with_write_access(
 ) -> None:
     responses = _passing_database_responses()
     responses[7] = [
-        (relation, True, relation == "studies")
+        ("public", relation, True, relation == "studies")
         for relation in local._REQUIRED_RELATION_COLUMNS
     ]
     connection = FakeConnection(responses)

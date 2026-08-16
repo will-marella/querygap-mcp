@@ -50,6 +50,16 @@ class FakeService:
         }
 
 
+class FakeAouService(FakeService):
+    def search_aou_catalog(
+        self, *, query: str, method: str = "hybrid", limit: int = 10
+    ) -> dict:
+        return {"query": query, "method": method, "limit": limit, "items": []}
+
+    def get_aou_item(self, result_id: str) -> dict:
+        return {"item": {"id": result_id}}
+
+
 @pytest.mark.anyio
 async def test_protocol_lists_exact_tools_resources_and_annotations() -> None:
     async with Client(create_server(FakeService())) as client:
@@ -103,6 +113,31 @@ async def test_protocol_returns_structured_content_and_static_resources() -> Non
     assert result.is_error is False
     assert result.structured_content["include_stats"] is True
     assert "participant-level data" in ontology.contents[0].text
+
+
+@pytest.mark.anyio
+async def test_protocol_adds_aou_tools_only_when_enabled() -> None:
+    async with Client(create_server(FakeAouService())) as client:
+        tools = await client.list_tools()
+        search = await client.call_tool(
+            "search_aou_catalog",
+            {"query": "diastolic blood pressure", "method": "keyword"},
+        )
+        detail = await client.call_tool(
+            "get_aou_item",
+            {"result_id": "aou.doc.0123456789abcdef01234567"},
+        )
+
+    assert [tool.name for tool in tools.tools][-2:] == [
+        "search_aou_catalog",
+        "get_aou_item",
+    ]
+    aou_search_tool = next(
+        tool for tool in tools.tools if tool.name == "search_aou_catalog"
+    )
+    assert aou_search_tool.input_schema["properties"]["limit"]["maximum"] == 20
+    assert search.structured_content["method"] == "keyword"
+    assert detail.structured_content["item"]["id"].startswith("aou.doc.")
 
 
 @pytest.mark.anyio

@@ -285,6 +285,59 @@ def test_ukb_detail_allowlists_links_and_bounds_payload(
     assert result["instance_summary"] == {"instances": []}
 
 
+def test_aou_search_marks_variables_and_preserves_catalog_identity(
+    service: QueryGaPRetrievalService,
+    recorder: Recorder,
+) -> None:
+    result = service.search_aou_catalog(
+        query="diastolic blood pressure",
+        method="hybrid",
+    )
+
+    item = result["items"][0]
+    assert item["id"] == "aou.doc.0123456789abcdef01234567"
+    assert item["is_variable"] is True
+    assert item["variable_class"] == "ehr_concept_variable"
+    assert item["concept_code"] == "8462-4"
+    assert item["canonical_url"].startswith(
+        "https://databrowser.researchallofus.org/"
+    )
+    call = next(call for call in recorder.calls if call[0] == "search_aou")
+    assert len(call[2]["query_embedding"]) == 1536
+
+
+def test_aou_hybrid_falls_back_to_keyword(recorder: Recorder) -> None:
+    service = QueryGaPRetrievalService(
+        make_dependencies(recorder),
+        embedding_provider=lambda _query: (_ for _ in ()).throw(RuntimeError("down")),
+    )
+
+    result = service.search_aou_catalog(query="highest education", method="hybrid")
+
+    call = next(call for call in recorder.calls if call[0] == "search_aou")
+    assert call[2]["method"] == "keyword"
+    assert call[2]["query_embedding"] is None
+    assert result["retrieval"]["degraded_reason"] == "embedding_provider_unavailable"
+
+
+def test_aou_detail_is_bounded_and_sanitizes_links(
+    service: QueryGaPRetrievalService,
+) -> None:
+    result = service.get_aou_item("aou.doc.0123456789abcdef01234567")
+
+    assert result["item"]["is_variable"] is True
+    assert result["details"]["identifiers"][0]["identifier_value"] == "8462-4"
+    assert result["details"]["links"][0]["url"].startswith("https://")
+    assert result["details"]["links"][1]["url"] is None
+
+
+def test_aou_detail_requires_opaque_search_result_id(
+    service: QueryGaPRetrievalService,
+) -> None:
+    with pytest.raises(ServiceError, match="invalid_scope"):
+        service.get_aou_item("8462-4")
+
+
 def test_result_payload_is_bounded(recorder: Recorder) -> None:
     huge = "x" * 100_000
     rows = [

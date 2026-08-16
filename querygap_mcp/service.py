@@ -7,7 +7,7 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, Callable, Mapping, Protocol, Sequence
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from .contracts import JsonObject, Provenance, ServiceError
 from .quota import EmbeddingBudgetExceeded
@@ -19,6 +19,19 @@ _ACCESSION_NUMBER_RE = re.compile(r"^(?:phv|pht|phd)(\d+)", re.IGNORECASE)
 
 _DBGAP_SOURCE = "NCBI dbGaP"
 _UKB_SOURCE = "UK Biobank Showcase"
+_AOU_SOURCE = "All of Us Research Program Data Browser"
+_AOU_DOC_KEY_RE = re.compile(r"^aou\.doc\.[0-9a-f]{24}$")
+_AOU_PREFERRED_LINK_HOSTS = frozenset(
+    {
+        "athena.ohdsi.org",
+        "databrowser.researchallofus.org",
+        "docs.google.com",
+        "github.com",
+        "public.api.researchallofus.org",
+        "support.researchallofus.org",
+        "www.researchallofus.org",
+    }
+)
 _DBGAP_STUDY_URL = "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi"
 _DBGAP_VARIABLE_URL = "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/variable.cgi"
 _DBGAP_DATASET_URL = "https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/dataset.cgi"
@@ -50,6 +63,8 @@ class RetrievalDependencies:
     get_ukb_field_instance_summaries: Callable[[int], Mapping[str, Any] | None]
     normalize_study_query_alias: Callable[[str], str] = lambda value: value
     resolve_study_accession: Callable[[str], Mapping[str, Any] | None] | None = None
+    search_aou: Callable[..., Rows] | None = None
+    get_aou_details: Callable[[str], Mapping[str, Any] | None] | None = None
 
 
 class QueryGaPRetrievalService:
@@ -358,6 +373,100 @@ class QueryGaPRetrievalService:
             ],
         }
 
+    def search_aou_catalog(
+        self,
+        *,
+        query: str,
+        method: str = "hybrid",
+        limit: int = 10,
+    ) -> JsonObject:
+        """Search public AoU variables and related navigation metadata."""
+
+        if self._deps.search_aou is None:
+            raise ServiceError(
+                "source_unavailable",
+                "The All of Us catalog is not configured for this server.",
+            )
+        query = _validate_text(query, field="query", max_length=500)
+        method = _validate_method(method, allowed={"keyword", "semantic", "hybrid"})
+        limit = _validate_limit(limit, maximum=20)
+
+        effective_method = method
+        degraded_reason = None
+        if method == "keyword":
+            query_embedding = None
+        else:
+            try:
+                query_embedding = self._embedding_for(query)
+            except ServiceError as error:
+                if method == "semantic":
+                    raise
+                query_embedding = None
+                effective_method = "keyword"
+                degraded_reason = error.code
+
+        rows = self._call(
+            self._deps.search_aou,
+            query=query,
+            query_embedding=query_embedding,
+            method=effective_method,
+            limit=limit,
+        )
+        items = [self._aou_item(row) for row in (rows or [])[:limit]]
+        return {
+            "source": "aou",
+            "query": query,
+            "items": items,
+            "retrieval": _retrieval_metadata(
+                method=method,
+                effective_method=effective_method,
+                embedding_used=query_embedding is not None,
+                keyword_weight=None,
+                semantic_weight=None,
+                degraded_reason=degraded_reason,
+            ),
+            "interpretation": {
+                "variable_rule": "is_variable is true for primary and grouped search records",
+                "support_records": (
+                    "navigation and support records provide context but are not variables"
+                ),
+            },
+            "warnings": [
+                "This searches public metadata only; it does not query "
+                "participant-level Workbench data.",
+                "OMOP concepts are variable-like EHR data elements, not physical database columns.",
+                "Scores are ranking signals and are not comparable across queries or sources.",
+            ],
+        }
+
+    def get_aou_item(self, result_id: str) -> JsonObject:
+        """Hydrate one AoU search result with identifiers and relationships."""
+
+        if self._deps.get_aou_details is None:
+            raise ServiceError(
+                "source_unavailable",
+                "The All of Us catalog is not configured for this server.",
+            )
+        result_id = _validate_aou_result_id(result_id)
+        row = self._call(self._deps.get_aou_details, result_id)
+        if not row:
+            raise ServiceError(
+                "not_found",
+                "The requested All of Us catalog item was not found in the active snapshot.",
+                details={"result_id": result_id},
+            )
+        details = _bounded_json(row.get("details") or {})
+        _sanitize_aou_detail_links(details)
+        return {
+            "item": self._aou_item(row),
+            "details": details,
+            "warnings": [
+                "This is public catalog metadata, not participant-level Workbench data.",
+                "Related collections are bounded to keep MCP responses small.",
+                "A source link documents or locates a data element; it does not grant data access.",
+            ],
+        }
+
     def _embedding_for(self, query: str) -> list[float]:
         if self._embedding_provider is None:
             raise ServiceError(
@@ -494,11 +603,55 @@ class QueryGaPRetrievalService:
         }
         return _json_value(item)
 
+    @staticmethod
+    def _aou_item(row: Mapping[str, Any]) -> JsonObject:
+        result_id = _optional_text(row.get("doc_key"))
+        search_role = _optional_text(row.get("search_role"))
+        item_kind = _optional_text(row.get("item_kind"))
+        source_url = _allowed_aou_preferred_url(row.get("preferred_url"))
+        is_variable = search_role in {"primary", "grouped"}
+        provenance = _provenance(_AOU_SOURCE, source_url)
+        snapshot_id = _optional_text(row.get("snapshot_key"))
+        if snapshot_id:
+            provenance["snapshot_id"] = snapshot_id
+            provenance["status"] = "snapshot_and_source_locator"
+        item: JsonObject = {
+            "source": "aou",
+            "id": result_id,
+            "kind": item_kind,
+            "search_role": search_role,
+            "is_variable": is_variable,
+            "variable_class": _aou_variable_class(row) if is_variable else None,
+            "ehr_variable_role": _optional_text(row.get("ehr_variable_role")),
+            "ehr_search_layer": _optional_text(row.get("ehr_search_layer")),
+            "title": _bounded_text(row.get("title"), 500),
+            "subtitle": _bounded_text(row.get("subtitle"), 1500),
+            "domain": _bounded_text(row.get("domain_id"), 200),
+            "vocabulary": _bounded_text(row.get("vocabulary_id"), 200),
+            "concept_code": _bounded_text(row.get("concept_code"), 500),
+            "native_id": _bounded_text(row.get("native_id"), 500),
+            "standard_concept": _bounded_text(row.get("standard_concept"), 20),
+            "mapping_status": _bounded_text(row.get("mapping_status"), 200),
+            "canonical_url": source_url,
+            "link_specificity": _bounded_text(
+                row.get("preferred_link_specificity"), 200
+            ),
+            "link_label": _bounded_text(row.get("preferred_link_label"), 500),
+            "match_reasons": _bounded_json(row.get("match_reasons") or []),
+            "scores": {
+                "lexical": _optional_float(row.get("lexical_score")),
+                "semantic": _optional_float(row.get("semantic_score")),
+                "combined": _optional_float(row.get("score")),
+            },
+            "provenance": provenance,
+        }
+        return _json_value(item)
+
 
 def repository_dependencies() -> RetrievalDependencies:
     """Load only the standalone MCP repository's fixed read adapters."""
 
-    from querygap_mcp import repository
+    from querygap_mcp import aou_repository, repository
 
     return RetrievalDependencies(
         search_studies=repository.search_studies,
@@ -512,6 +665,8 @@ def repository_dependencies() -> RetrievalDependencies:
         get_ukb_field_instance_summaries=repository.get_ukb_field_instance_summaries,
         normalize_study_query_alias=repository.normalize_study_query_alias,
         resolve_study_accession=repository.resolve_study_accession,
+        search_aou=aou_repository.search_aou_catalog,
+        get_aou_details=aou_repository.get_aou_item,
     )
 
 
@@ -568,6 +723,16 @@ def _validate_field_id(value: Any) -> int:
             details={"field": "field_id"},
         )
     return value
+
+
+def _validate_aou_result_id(value: Any) -> str:
+    if not isinstance(value, str) or not _AOU_DOC_KEY_RE.fullmatch(value.strip()):
+        raise ServiceError(
+            "invalid_scope",
+            "result_id must be an All of Us ID returned by search_aou_catalog.",
+            details={"field": "result_id"},
+        )
+    return value.strip()
 
 
 def _validate_method(value: Any, *, allowed: set[str]) -> str:
@@ -635,6 +800,64 @@ def _allowed_ukb_url(value: Any) -> str | None:
     if candidate and candidate.startswith("https://biobank.ndph.ox.ac.uk/ukb/"):
         return candidate
     return None
+
+
+def _safe_https_url(value: Any) -> str | None:
+    candidate = _optional_text(value)
+    if candidate is None or len(candidate) > 2048:
+        return None
+    try:
+        parsed = urlsplit(candidate)
+    except ValueError:
+        return None
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or any(ord(character) < 0x20 for character in candidate)
+    ):
+        return None
+    return candidate
+
+
+def _allowed_aou_preferred_url(value: Any) -> str | None:
+    candidate = _safe_https_url(value)
+    if candidate is None:
+        return None
+    try:
+        hostname = urlsplit(candidate).hostname
+    except ValueError:
+        return None
+    return candidate if hostname in _AOU_PREFERRED_LINK_HOSTS else None
+
+
+def _aou_variable_class(row: Mapping[str, Any]) -> str | None:
+    item_kind = _optional_text(row.get("item_kind"))
+    preferred_url = _optional_text(row.get("preferred_url")) or ""
+    if item_kind == "omop_concept" and (
+        _optional_text(row.get("vocabulary_id")) == "PPI"
+        and "/physical-measurements/" in preferred_url
+    ):
+        return "physical_measurement_variable"
+    return {
+        "omop_concept": "ehr_concept_variable",
+        "survey_variable": "survey_variable",
+        "program_measurement_definition": "physical_measurement_variable",
+        "fitbit_metric": "fitbit_variable",
+    }.get(item_kind)
+
+
+def _sanitize_aou_detail_links(value: Any) -> None:
+    if isinstance(value, dict):
+        for key, item in list(value.items()):
+            if key in {"url", "variable_preferred_url"}:
+                value[key] = _safe_https_url(item)
+            else:
+                _sanitize_aou_detail_links(item)
+    elif isinstance(value, list):
+        for item in value:
+            _sanitize_aou_detail_links(item)
 
 
 def _provenance(source_system: str, source_url: str | None) -> Provenance:

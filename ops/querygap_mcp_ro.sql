@@ -19,10 +19,15 @@ ALTER ROLE querygap_mcp_ro SET search_path = pg_catalog, public;
 -- to detect privileges inherited through PUBLIC, ownership, or memberships.
 REVOKE ALL PRIVILEGES ON SCHEMA public FROM querygap_mcp_ro;
 GRANT USAGE ON SCHEMA public TO querygap_mcp_ro;
+REVOKE ALL PRIVILEGES ON SCHEMA aou FROM querygap_mcp_ro;
+GRANT USAGE ON SCHEMA aou TO querygap_mcp_ro;
 
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM querygap_mcp_ro;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM querygap_mcp_ro;
 REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM querygap_mcp_ro;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA aou FROM querygap_mcp_ro;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA aou FROM querygap_mcp_ro;
+REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA aou FROM querygap_mcp_ro;
 
 -- Table-level revocation does not remove grants made on individual columns.
 -- Revoke every direct column ACL before applying the relation allowlist.
@@ -40,7 +45,7 @@ BEGIN
           ON namespace.oid = relation.relnamespace
         JOIN pg_catalog.pg_attribute attribute
           ON attribute.attrelid = relation.oid
-        WHERE namespace.nspname = 'public'
+        WHERE namespace.nspname IN ('public', 'aou')
           AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
           AND attribute.attnum > 0
           AND NOT attribute.attisdropped
@@ -63,7 +68,21 @@ GRANT SELECT ON TABLE
     public.documents,
     public.ukb_search_docs_fields,
     public.ukb_field_page_data,
-    public.ukb_field_instance_stats
+    public.ukb_field_instance_stats,
+    aou.snapshots,
+    aou.active_snapshots,
+    aou.items,
+    aou.identifiers,
+    aou.edges,
+    aou.links,
+    aou.program_measurement_details,
+    aou.survey_scales,
+    aou.survey_scale_memberships,
+    aou.survey_scale_response_weights,
+    aou.search_docs,
+    aou.search_doc_members,
+    aou.aliases,
+    aou.embedding_cache
 TO querygap_mcp_ro;
 
 -- TEMP is normally inherited from PUBLIC. This removes a direct role grant;

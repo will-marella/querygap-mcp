@@ -5,7 +5,7 @@ from typing import Iterator
 
 from pglast import parse_sql
 
-from querygap_mcp import repository
+from querygap_mcp import aou_repository, repository
 
 
 class CapturingCursor:
@@ -75,6 +75,42 @@ def test_all_fixed_repository_queries_parse_and_bind(monkeypatch) -> None:
         operation()
 
     assert len(cursor.executions) == 16
+    for statement, params in cursor.executions:
+        assert statement.count("%s") == len(params or ())
+        parse_sql(statement.replace("%s", "NULL"))
+
+
+def test_aou_fixed_repository_queries_parse_and_bind(monkeypatch) -> None:
+    class AouCapturingCursor(CapturingCursor):
+        description: list = []
+
+        def fetchone(self):
+            return ("aou.snapshot.test",)
+
+    cursor = AouCapturingCursor()
+
+    @contextmanager
+    def capture() -> Iterator[AouCapturingCursor]:
+        yield cursor
+
+    monkeypatch.setattr(aou_repository, "read_cursor", capture)
+    vector = [0.0] * 1536
+
+    aou_repository.search_aou_catalog(
+        query="diastolic blood pressure",
+        query_embedding=None,
+        method="keyword",
+        limit=10,
+    )
+    aou_repository.search_aou_catalog(
+        query="diastolic blood pressure",
+        query_embedding=vector,
+        method="hybrid",
+        limit=10,
+    )
+    aou_repository.get_aou_item("aou.doc.0123456789abcdef01234567")
+
+    assert cursor.executions
     for statement, params in cursor.executions:
         assert statement.count("%s") == len(params or ())
         parse_sql(statement.replace("%s", "NULL"))
