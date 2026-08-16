@@ -14,6 +14,9 @@ DbgapCatalogKind = Literal["variable", "dataset", "document"]
 DbgapSearchMethod = Literal["keyword", "semantic", "hybrid"]
 UkbSearchMethod = Literal["keyword", "hybrid"]
 AouSearchMethod = Literal["keyword", "semantic", "hybrid"]
+AouVariableType = Literal["ehr", "survey", "physical_measurement", "fitbit"]
+AouEhrDomain = Literal["Condition", "Drug", "Measurement", "Procedure"]
+AouEhrRole = Literal["standard", "source", "classification"]
 JsonObject = dict[str, Any]
 
 

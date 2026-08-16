@@ -14,7 +14,12 @@ from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from querygap_mcp.contracts import ServiceError
+from querygap_mcp.contracts import (
+    AouEhrDomain,
+    AouEhrRole,
+    AouVariableType,
+    ServiceError,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -42,7 +47,9 @@ The optional All of Us vertical searches public Data Browser metadata only; it
 never queries participant-level Workbench data. AoU search results explicitly
 mark variables versus navigation/support records. Use the returned result ID
 with get_aou_item when identifiers, links, answer choices, scale membership,
-or concept relationships are needed.
+or concept relationships are needed. When the user's intent is clear, use the
+optional variable_type filter. EHR-specific domain, role, and vocabulary
+filters require variable_type='ehr'.
 """
 
 READ_ONLY = ToolAnnotations(
@@ -62,6 +69,42 @@ SearchLimit = Annotated[
         ge=1,
         le=20,
         description="Number of results, from 1 through 20; omit for the default of 10.",
+    ),
+]
+AouVariableTypeFilter = Annotated[
+    AouVariableType | None,
+    Field(
+        description=(
+            "Optional high-level variable filter. Omit to search variables and "
+            "navigation/support records across the full public AoU catalog."
+        )
+    ),
+]
+AouEhrDomainFilter = Annotated[
+    AouEhrDomain | None,
+    Field(
+        description=(
+            "Optional OMOP EHR domain. Requires variable_type='ehr'."
+        )
+    ),
+]
+AouEhrRoleFilter = Annotated[
+    AouEhrRole | None,
+    Field(
+        description=(
+            "Optional EHR concept role. Requires variable_type='ehr'."
+        )
+    ),
+]
+AouEhrVocabularyFilter = Annotated[
+    str | None,
+    Field(
+        min_length=1,
+        max_length=100,
+        description=(
+            "Optional EHR vocabulary such as LOINC, SNOMED, RxNorm, ICD10CM, "
+            "NDC, or CPT4. Requires variable_type='ehr'."
+        ),
     ),
 ]
 
@@ -150,7 +193,7 @@ def create_server(
         title="QueryGaP",
         description=f"Read-only search over {sources}.",
         instructions=instructions,
-        version="0.1.0",
+        version="0.2.0",
     )
 
     @server.tool(
@@ -266,6 +309,10 @@ def create_server(
             query: str,
             method: Literal["keyword", "semantic", "hybrid"] = "hybrid",
             limit: SearchLimit = 10,
+            variable_type: AouVariableTypeFilter = None,
+            ehr_domain: AouEhrDomainFilter = None,
+            ehr_role: AouEhrRoleFilter = None,
+            ehr_vocabulary: AouEhrVocabularyFilter = None,
         ) -> dict[str, Any]:
             """Search public AoU variables plus useful navigation/support records.
 
@@ -278,6 +325,10 @@ def create_server(
                 query=query,
                 method=method,
                 limit=limit,
+                variable_type=variable_type,
+                ehr_domain=ehr_domain,
+                ehr_role=ehr_role,
+                ehr_vocabulary=ehr_vocabulary,
             )
 
         @server.tool(

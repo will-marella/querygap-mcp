@@ -52,9 +52,26 @@ class FakeService:
 
 class FakeAouService(FakeService):
     def search_aou_catalog(
-        self, *, query: str, method: str = "hybrid", limit: int = 10
+        self,
+        *,
+        query: str,
+        method: str = "hybrid",
+        limit: int = 10,
+        variable_type: str | None = None,
+        ehr_domain: str | None = None,
+        ehr_role: str | None = None,
+        ehr_vocabulary: str | None = None,
     ) -> dict:
-        return {"query": query, "method": method, "limit": limit, "items": []}
+        return {
+            "query": query,
+            "method": method,
+            "limit": limit,
+            "variable_type": variable_type,
+            "ehr_domain": ehr_domain,
+            "ehr_role": ehr_role,
+            "ehr_vocabulary": ehr_vocabulary,
+            "items": [],
+        }
 
     def get_aou_item(self, result_id: str) -> dict:
         return {"item": {"id": result_id}}
@@ -121,7 +138,14 @@ async def test_protocol_adds_aou_tools_only_when_enabled() -> None:
         tools = await client.list_tools()
         search = await client.call_tool(
             "search_aou_catalog",
-            {"query": "diastolic blood pressure", "method": "keyword"},
+            {
+                "query": "diastolic blood pressure",
+                "method": "keyword",
+                "variable_type": "ehr",
+                "ehr_domain": "Measurement",
+                "ehr_role": "standard",
+                "ehr_vocabulary": "LOINC",
+            },
         )
         detail = await client.call_tool(
             "get_aou_item",
@@ -136,7 +160,26 @@ async def test_protocol_adds_aou_tools_only_when_enabled() -> None:
         tool for tool in tools.tools if tool.name == "search_aou_catalog"
     )
     assert aou_search_tool.input_schema["properties"]["limit"]["maximum"] == 20
+    schema_text = json.dumps(aou_search_tool.input_schema["properties"])
+    for value in (
+        "ehr",
+        "survey",
+        "physical_measurement",
+        "fitbit",
+        "Condition",
+        "Drug",
+        "Measurement",
+        "Procedure",
+        "standard",
+        "source",
+        "classification",
+    ):
+        assert value in schema_text
     assert search.structured_content["method"] == "keyword"
+    assert search.structured_content["variable_type"] == "ehr"
+    assert search.structured_content["ehr_domain"] == "Measurement"
+    assert search.structured_content["ehr_role"] == "standard"
+    assert search.structured_content["ehr_vocabulary"] == "LOINC"
     assert detail.structured_content["item"]["id"].startswith("aou.doc.")
 
 

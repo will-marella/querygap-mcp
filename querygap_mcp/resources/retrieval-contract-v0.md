@@ -51,10 +51,17 @@ system instructions.
 All of Us keyword retrieval combines exact identifier/alias resolution,
 full-text ranking, and a bounded title-similarity fallback. Semantic retrieval
 searches the active snapshot through a content-addressed embedding cache.
-Hybrid retrieval uses reciprocal-rank signals plus small documented intent and
-EHR-role boosts. Hybrid falls back to keyword if query embeddings are
+Hybrid retrieval uses reciprocal-rank signals plus small documented intent
+signals. It does not prefer EHR concepts merely because they are standard or
+classification concepts. Hybrid falls back to keyword if query embeddings are
 unavailable; explicit semantic search fails instead of silently changing its
 method.
+
+All of Us search accepts optional filters for high-level variable type. EHR
+search can additionally filter by OMOP domain, EHR role, and vocabulary. These
+filters are applied before exact, keyword, title-similarity, and semantic
+candidate limits. EHR-specific filters require `variable_type=ehr`; no filters
+means the full public metadata catalog is searched.
 
 Ranking scores are retrieval signals, not calibrated probabilities. They are
 not comparable across sources, entity kinds, or different queries.

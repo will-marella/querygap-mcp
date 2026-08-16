@@ -29,6 +29,7 @@ EXPECTED_TOOLS = {
     "search_ukb_fields",
     "get_ukb_field",
 }
+AOU_TOOLS = {"search_aou_catalog", "get_aou_item"}
 EXPECTED_RESOURCES = {
     "querygap://ontology/v0",
     "querygap://retrieval-contract/v0",
@@ -46,6 +47,10 @@ def _embeddings_enabled() -> bool:
     return enabled not in {"0", "false", "no", "off"} and bool(
         os.getenv("OPENAI_API_KEY", "").strip()
     )
+
+
+def _aou_enabled() -> bool:
+    return os.getenv("QG_MCP_AOU_ENABLED", "").strip() == "1"
 
 
 pytestmark = [
@@ -155,7 +160,8 @@ async def test_live_protocol_and_read_only_retrieval(live_client: Client) -> Non
 
     tools = await live_client.list_tools()
     resources = await live_client.list_resources()
-    assert {tool.name for tool in tools.tools} == EXPECTED_TOOLS
+    expected_tools = EXPECTED_TOOLS | (AOU_TOOLS if _aou_enabled() else set())
+    assert {tool.name for tool in tools.tools} == expected_tools
     assert {str(resource.uri) for resource in resources.resources} == EXPECTED_RESOURCES
     for tool in tools.tools:
         assert tool.annotations is not None
@@ -268,6 +274,46 @@ async def test_live_protocol_and_read_only_retrieval(live_client: Client) -> Non
     assert ukb_field["field"]["id"] == 21022
     assert ukb_field["field"]["canonical_url"].endswith("?id=21022")
     assert ukb_field["instance_summary"] is None
+
+    if _aou_enabled():
+        aou_search = _structured(
+            await live_client.call_tool(
+                "search_aou_catalog",
+                {
+                    "query": "LOINC 8462-4",
+                    "method": "keyword",
+                    "limit": 3,
+                    "variable_type": "ehr",
+                    "ehr_domain": "Measurement",
+                    "ehr_role": "standard",
+                    "ehr_vocabulary": "LOINC",
+                },
+            )
+        )
+        assert aou_search["applied_filters"] == {
+            "variable_type": "ehr",
+            "ehr_domain": "Measurement",
+            "ehr_role": "standard",
+            "ehr_vocabulary": "LOINC",
+        }
+        assert aou_search["items"]
+        aou_item = aou_search["items"][0]
+        assert aou_item["source"] == "aou"
+        assert aou_item["is_variable"] is True
+        assert aou_item["variable_class"] == "ehr_concept_variable"
+        assert aou_item["concept_code"] == "8462-4"
+
+        aou_detail = _structured(
+            await live_client.call_tool(
+                "get_aou_item",
+                {"result_id": aou_item["id"]},
+            )
+        )
+        assert aou_detail["item"]["id"] == aou_item["id"]
+        assert any(
+            identifier["identifier_value"] == "8462-4"
+            for identifier in aou_detail["details"]["identifiers"]
+        )
 
     unknown = await live_client.call_tool(
         "execute_sql",

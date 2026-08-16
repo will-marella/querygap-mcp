@@ -21,6 +21,11 @@ _DBGAP_SOURCE = "NCBI dbGaP"
 _UKB_SOURCE = "UK Biobank Showcase"
 _AOU_SOURCE = "All of Us Research Program Data Browser"
 _AOU_DOC_KEY_RE = re.compile(r"^aou\.doc\.[0-9a-f]{24}$")
+_AOU_VARIABLE_TYPES = frozenset(
+    {"ehr", "survey", "physical_measurement", "fitbit"}
+)
+_AOU_EHR_DOMAINS = frozenset({"Condition", "Drug", "Measurement", "Procedure"})
+_AOU_EHR_ROLES = frozenset({"standard", "source", "classification"})
 _AOU_PREFERRED_LINK_HOSTS = frozenset(
     {
         "athena.ohdsi.org",
@@ -379,6 +384,10 @@ class QueryGaPRetrievalService:
         query: str,
         method: str = "hybrid",
         limit: int = 10,
+        variable_type: str | None = None,
+        ehr_domain: str | None = None,
+        ehr_role: str | None = None,
+        ehr_vocabulary: str | None = None,
     ) -> JsonObject:
         """Search public AoU variables and related navigation metadata."""
 
@@ -390,6 +399,45 @@ class QueryGaPRetrievalService:
         query = _validate_text(query, field="query", max_length=500)
         method = _validate_method(method, allowed={"keyword", "semantic", "hybrid"})
         limit = _validate_limit(limit, maximum=20)
+        variable_type = _validate_optional_choice(
+            variable_type,
+            field="variable_type",
+            allowed=_AOU_VARIABLE_TYPES,
+        )
+        ehr_domain = _validate_optional_choice(
+            ehr_domain,
+            field="ehr_domain",
+            allowed=_AOU_EHR_DOMAINS,
+        )
+        ehr_role = _validate_optional_choice(
+            ehr_role,
+            field="ehr_role",
+            allowed=_AOU_EHR_ROLES,
+        )
+        ehr_vocabulary = _validate_optional_text(
+            ehr_vocabulary,
+            field="ehr_vocabulary",
+            max_length=100,
+        )
+        if variable_type != "ehr" and any(
+            value is not None for value in (ehr_domain, ehr_role, ehr_vocabulary)
+        ):
+            raise ServiceError(
+                "invalid_request",
+                "ehr_domain, ehr_role, and ehr_vocabulary require variable_type='ehr'.",
+                details={"field": "variable_type"},
+            )
+
+        applied_filters = {
+            key: value
+            for key, value in {
+                "variable_type": variable_type,
+                "ehr_domain": ehr_domain,
+                "ehr_role": ehr_role,
+                "ehr_vocabulary": ehr_vocabulary,
+            }.items()
+            if value is not None
+        }
 
         effective_method = method
         degraded_reason = None
@@ -411,11 +459,16 @@ class QueryGaPRetrievalService:
             query_embedding=query_embedding,
             method=effective_method,
             limit=limit,
+            variable_type=variable_type,
+            ehr_domain=ehr_domain,
+            ehr_role=ehr_role,
+            ehr_vocabulary=ehr_vocabulary,
         )
         items = [self._aou_item(row) for row in (rows or [])[:limit]]
         return {
             "source": "aou",
             "query": query,
+            "applied_filters": applied_filters,
             "items": items,
             "retrieval": _retrieval_metadata(
                 method=method,
@@ -745,6 +798,34 @@ def _validate_method(value: Any, *, allowed: set[str]) -> str:
     return value
 
 
+def _validate_optional_choice(
+    value: Any,
+    *,
+    field: str,
+    allowed: frozenset[str],
+) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or value not in allowed:
+        raise ServiceError(
+            "invalid_request",
+            f"{field} must be one of: {', '.join(sorted(allowed))}.",
+            details={"field": field},
+        )
+    return value
+
+
+def _validate_optional_text(
+    value: Any,
+    *,
+    field: str,
+    max_length: int,
+) -> str | None:
+    if value is None:
+        return None
+    return _validate_text(value, field=field, max_length=max_length)
+
+
 def _validate_full_study_id(value: Any) -> str:
     if not isinstance(value, str) or not _FULL_STUDY_ID_RE.fullmatch(value.strip()):
         raise ServiceError(
@@ -834,11 +915,9 @@ def _allowed_aou_preferred_url(value: Any) -> str | None:
 
 def _aou_variable_class(row: Mapping[str, Any]) -> str | None:
     item_kind = _optional_text(row.get("item_kind"))
-    preferred_url = _optional_text(row.get("preferred_url")) or ""
-    if item_kind == "omop_concept" and (
-        _optional_text(row.get("vocabulary_id")) == "PPI"
-        and "/physical-measurements/" in preferred_url
-    ):
+    if item_kind == "omop_concept" and _optional_text(
+        row.get("program_measurement")
+    ) == "true":
         return "physical_measurement_variable"
     return {
         "omop_concept": "ehr_concept_variable",

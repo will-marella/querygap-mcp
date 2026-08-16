@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Iterator
 
+import pytest
 from pglast import parse_sql
 
 from querygap_mcp import aou_repository, repository
@@ -107,6 +108,16 @@ def test_aou_fixed_repository_queries_parse_and_bind(monkeypatch) -> None:
         query_embedding=vector,
         method="hybrid",
         limit=10,
+        variable_type="ehr",
+        ehr_domain="Measurement",
+        ehr_role="standard",
+        ehr_vocabulary="LOINC",
+    )
+    aou_repository.search_aou_catalog(
+        query="diastolic blood pressure",
+        query_embedding=vector,
+        method="semantic",
+        limit=10,
     )
     aou_repository.get_aou_item("aou.doc.0123456789abcdef01234567")
 
@@ -114,3 +125,28 @@ def test_aou_fixed_repository_queries_parse_and_bind(monkeypatch) -> None:
     for statement, params in cursor.executions:
         assert statement.count("%s") == len(params or ())
         parse_sql(statement.replace("%s", "NULL"))
+
+    filtered_statements = [
+        statement
+        for statement, params in cursor.executions
+        if params and "requested_filters" in statement
+    ]
+    assert filtered_statements
+    for statement in filtered_statements:
+        compact = " ".join(statement.split()).lower()
+        assert "join aou.items as item" in compact
+        assert "filters.variable_type" in compact
+        assert "filters.ehr_domain" in compact
+        assert "filters.ehr_role" in compact
+        assert "filters.ehr_vocabulary" in compact
+
+
+def test_aou_repository_rejects_ehr_filters_without_ehr_type() -> None:
+    with pytest.raises(ValueError, match="require variable_type='ehr'"):
+        aou_repository.search_aou_catalog(
+            query="blood pressure",
+            query_embedding=None,
+            method="keyword",
+            limit=10,
+            ehr_domain="Measurement",
+        )

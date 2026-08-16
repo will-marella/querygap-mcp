@@ -39,11 +39,102 @@ _IDENTIFIER_PREFIX_PATTERN = "|".join(
         reverse=True,
     )
 )
+_VARIABLE_TYPES = frozenset({"ehr", "survey", "physical_measurement", "fitbit"})
+_EHR_DOMAINS = frozenset({"Condition", "Drug", "Measurement", "Procedure"})
+_EHR_ROLES = frozenset({"standard", "source", "classification"})
+_FILTERS_CTE_SQL = """
+requested_filters AS (
+    SELECT %s::text AS variable_type,
+           %s::text AS ehr_domain,
+           %s::text AS ehr_role,
+           %s::text AS ehr_vocabulary
+)
+"""
+_FILTER_PREDICATE_SQL = """
+  AND (
+      filters.variable_type IS NULL
+      OR (
+          filters.variable_type = 'ehr'
+          AND item.item_kind = 'omop_concept'
+          AND COALESCE(item.attributes ->> 'program_measurement', 'false') <> 'true'
+      )
+      OR (
+          filters.variable_type = 'survey'
+          AND item.item_kind = 'survey_variable'
+      )
+      OR (
+          filters.variable_type = 'physical_measurement'
+          AND (
+              item.item_kind = 'program_measurement_definition'
+              OR (
+                  item.item_kind = 'omop_concept'
+                  AND item.attributes ->> 'program_measurement' = 'true'
+              )
+          )
+      )
+      OR (
+          filters.variable_type = 'fitbit'
+          AND item.item_kind = 'fitbit_metric'
+      )
+  )
+  AND (
+      filters.ehr_domain IS NULL
+      OR item.domain_id = filters.ehr_domain
+  )
+  AND (
+      filters.ehr_role IS NULL
+      OR item.attributes ->> 'ehr_variable_role' = filters.ehr_role
+  )
+  AND (
+      filters.ehr_vocabulary IS NULL
+      OR lower(item.vocabulary_id) = lower(filters.ehr_vocabulary)
+  )
+"""
 
 
 def _normalize_alias(value: str) -> str:
     normalized = unicodedata.normalize("NFKC", value or "").strip().lower()
     return re.sub(r"\s+", " ", normalized)
+
+
+def _validated_filters(
+    *,
+    variable_type: str | None,
+    ehr_domain: str | None,
+    ehr_role: str | None,
+    ehr_vocabulary: str | None,
+) -> dict[str, str | None]:
+    if variable_type is not None and variable_type not in _VARIABLE_TYPES:
+        raise ValueError("Unsupported All of Us variable_type filter")
+    if ehr_domain is not None and ehr_domain not in _EHR_DOMAINS:
+        raise ValueError("Unsupported All of Us ehr_domain filter")
+    if ehr_role is not None and ehr_role not in _EHR_ROLES:
+        raise ValueError("Unsupported All of Us ehr_role filter")
+    if ehr_vocabulary is not None:
+        if not isinstance(ehr_vocabulary, str):
+            raise ValueError("All of Us ehr_vocabulary must be a string")
+        ehr_vocabulary = ehr_vocabulary.strip()
+        if not ehr_vocabulary or len(ehr_vocabulary) > 100:
+            raise ValueError("Invalid All of Us ehr_vocabulary filter")
+    if variable_type != "ehr" and any(
+        value is not None for value in (ehr_domain, ehr_role, ehr_vocabulary)
+    ):
+        raise ValueError("All of Us EHR filters require variable_type='ehr'")
+    return {
+        "variable_type": variable_type,
+        "ehr_domain": ehr_domain,
+        "ehr_role": ehr_role,
+        "ehr_vocabulary": ehr_vocabulary,
+    }
+
+
+def _filter_params(filters: dict[str, str | None]) -> tuple[str | None, ...]:
+    return (
+        filters["variable_type"],
+        filters["ehr_domain"],
+        filters["ehr_role"],
+        filters["ehr_vocabulary"],
+    )
 
 
 def _parse_identifier_query(query: str) -> tuple[str | None, str | None]:
@@ -85,11 +176,13 @@ def _exact_candidates(
     *,
     snapshot_key: str,
     query: str,
+    filters: dict[str, str | None],
 ) -> list[dict[str, Any]]:
     system, value = _parse_identifier_query(query)
     cursor.execute(
-        """
-        WITH identifier_items AS (
+        f"""
+        WITH {_FILTERS_CTE_SQL},
+        identifier_items AS (
             SELECT identifier.item_key,
                    'identifier:' || identifier.identifier_system AS match_kind
             FROM aou.identifiers AS identifier
@@ -119,16 +212,22 @@ def _exact_candidates(
               ON member.item_key = exact_items.item_key
             JOIN aou.search_docs AS document
               ON document.doc_key = member.doc_key
+            JOIN aou.items AS item
+              ON item.item_key = document.item_key
+             AND item.snapshot_key = document.snapshot_key
+            CROSS JOIN requested_filters AS filters
+            WHERE document.snapshot_key = %s
+              AND document.is_lexically_searchable
+              {_FILTER_PREDICATE_SQL}
         )
         SELECT DISTINCT ON (doc_key) doc_key, match_kind
         FROM exact_documents
-        WHERE snapshot_key = %s
-          AND is_lexically_searchable
         ORDER BY doc_key,
                  CASE WHEN match_kind LIKE 'identifier:%%' THEN 0 ELSE 1 END,
                  match_kind
         """,
         (
+            *_filter_params(filters),
             snapshot_key,
             value,
             value,
@@ -153,29 +252,35 @@ def _keyword_candidates(
     limit: int,
     include_title_fallback: bool,
     fallback_threshold: int,
+    filters: dict[str, str | None],
 ) -> list[dict[str, Any]]:
     cursor.execute(
-        """
-        WITH parsed AS (
+        f"""
+        WITH {_FILTERS_CTE_SQL},
+        parsed AS (
             SELECT websearch_to_tsquery('simple', %s) AS terms
         ),
         full_text_hits AS MATERIALIZED (
             SELECT document.doc_key,
-                   document.snapshot_key,
                    ts_rank_cd(document.search_tsv, parsed.terms, 32) AS lexical_score,
                    similarity(lower(document.title), lower(%s)) AS title_similarity
             FROM aou.search_docs AS document
+            JOIN aou.items AS item
+              ON item.item_key = document.item_key
+             AND item.snapshot_key = document.snapshot_key
+            CROSS JOIN requested_filters AS filters
             CROSS JOIN parsed
-            WHERE document.is_lexically_searchable
+            WHERE document.snapshot_key = %s
+              AND document.is_lexically_searchable
               AND document.search_tsv @@ parsed.terms
+              {_FILTER_PREDICATE_SQL}
         )
         SELECT doc_key, lexical_score, title_similarity
         FROM full_text_hits
-        WHERE snapshot_key = %s
         ORDER BY lexical_score + 0.15 * title_similarity DESC, doc_key
         LIMIT %s
         """,
-        (query, query, snapshot_key, limit),
+        (*_filter_params(filters), query, query, snapshot_key, limit),
     )
     full_text = [
         {
@@ -191,24 +296,37 @@ def _keyword_candidates(
         return full_text
 
     cursor.execute(
-        """
-        WITH title_fallback_hits AS MATERIALIZED (
+        f"""
+        WITH {_FILTERS_CTE_SQL},
+        title_fallback_hits AS MATERIALIZED (
             SELECT document.doc_key,
-                   document.snapshot_key,
                    similarity(lower(document.title), lower(%s)) AS title_similarity,
                    lower(document.title) <-> lower(%s) AS title_distance
             FROM aou.search_docs AS document
-            WHERE document.is_lexically_searchable
+            JOIN aou.items AS item
+              ON item.item_key = document.item_key
+             AND item.snapshot_key = document.snapshot_key
+            CROSS JOIN requested_filters AS filters
+            WHERE document.snapshot_key = %s
+              AND document.is_lexically_searchable
+              {_FILTER_PREDICATE_SQL}
             ORDER BY lower(document.title) <-> lower(%s)
             LIMIT %s
         )
         SELECT doc_key, 0::real AS lexical_score, title_similarity
         FROM title_fallback_hits
-        WHERE snapshot_key = %s
         ORDER BY title_distance, doc_key
         LIMIT %s
         """,
-        (query, query, query, max(limit * 8, 100), snapshot_key, limit),
+        (
+            *_filter_params(filters),
+            query,
+            query,
+            snapshot_key,
+            query,
+            max(limit * 8, 100),
+            limit,
+        ),
     )
     candidates = {row["doc_key"]: row for row in full_text}
     for doc_key, lexical_score, title_similarity in cursor.fetchall():
@@ -244,6 +362,7 @@ def _semantic_candidates(
     snapshot_key: str,
     query_embedding: list[float],
     limit: int,
+    filters: dict[str, str | None],
 ) -> list[dict[str, Any]]:
     vector = _vector_literal(query_embedding)
     embedding_model = (
@@ -253,29 +372,79 @@ def _semantic_candidates(
     cursor.execute("SET LOCAL ivfflat.probes = 50")
     cursor.execute("SET LOCAL ivfflat.iterative_scan = relaxed_order")
     cursor.execute("SET LOCAL enable_seqscan = off")
-    cursor.execute(
-        """
-        WITH semantic_content_hits AS MATERIALIZED (
-            SELECT cache.content_sha256,
-                   cache.embedding <=> %s::vector AS semantic_distance
-            FROM aou.embedding_cache AS cache
-            WHERE cache.embedding_model = %s
-              AND cache.dimensions = 1536
-            ORDER BY cache.embedding <=> %s::vector
+    if any(value is not None for value in filters.values()):
+        cursor.execute("SET LOCAL enable_seqscan = on")
+        cursor.execute(
+            f"""
+            WITH {_FILTERS_CTE_SQL},
+            eligible_documents AS MATERIALIZED (
+                SELECT document.doc_key, document.embedding
+                FROM aou.search_docs AS document
+                JOIN aou.items AS item
+                  ON item.item_key = document.item_key
+                 AND item.snapshot_key = document.snapshot_key
+                CROSS JOIN requested_filters AS filters
+                WHERE document.snapshot_key = %s
+                  AND document.is_embeddable
+                  AND document.embedding IS NOT NULL
+                  AND document.embedding_model = %s
+                  AND document.embedded_content_sha256 = document.content_sha256
+                  {_FILTER_PREDICATE_SQL}
+            ),
+            semantic_document_hits AS MATERIALIZED (
+                SELECT document.doc_key,
+                       document.embedding <=> %s::vector AS semantic_distance
+                FROM eligible_documents AS document
+                ORDER BY document.embedding <=> %s::vector
+                LIMIT %s
+            )
+            SELECT hit.doc_key,
+                   1 - hit.semantic_distance AS semantic_score
+            FROM semantic_document_hits AS hit
+            ORDER BY hit.semantic_distance, hit.doc_key
             LIMIT %s
+            """,
+            (
+                *_filter_params(filters),
+                snapshot_key,
+                embedding_model,
+                vector,
+                vector,
+                limit,
+                limit,
+            ),
         )
-        SELECT document.doc_key,
-               1 - hit.semantic_distance AS semantic_score
-        FROM semantic_content_hits AS hit
-        JOIN aou.search_docs AS document
-          ON document.snapshot_key = %s
-         AND document.content_sha256 = hit.content_sha256
-        WHERE document.is_embeddable
-        ORDER BY hit.semantic_distance, document.doc_key
-        LIMIT %s
-        """,
-        (vector, embedding_model, vector, oversample_limit, snapshot_key, limit),
-    )
+    else:
+        cursor.execute(
+            """
+            WITH semantic_content_hits AS MATERIALIZED (
+                SELECT cache.content_sha256,
+                       cache.embedding <=> %s::vector AS semantic_distance
+                FROM aou.embedding_cache AS cache
+                WHERE cache.embedding_model = %s
+                  AND cache.dimensions = 1536
+                ORDER BY cache.embedding <=> %s::vector
+                LIMIT %s
+            )
+            SELECT document.doc_key,
+                   1 - hit.semantic_distance AS semantic_score
+            FROM semantic_content_hits AS hit
+            JOIN aou.search_docs AS document
+              ON document.snapshot_key = %s
+             AND document.content_sha256 = hit.content_sha256
+            WHERE document.is_embeddable
+            ORDER BY hit.semantic_distance, document.doc_key
+            LIMIT %s
+            """,
+            (
+                vector,
+                embedding_model,
+                vector,
+                oversample_limit,
+                snapshot_key,
+                limit,
+            ),
+        )
     rows = cursor.fetchall()
     cursor.execute("SET LOCAL enable_seqscan = on")
     cursor.execute("SET LOCAL ivfflat.iterative_scan = off")
@@ -310,11 +479,14 @@ def _document_summaries(
                item.attributes ->> 'ehr_variable_role' AS ehr_variable_role,
                item.attributes ->> 'ehr_search_layer' AS ehr_search_layer,
                item.attributes ->> 'mapping_status' AS mapping_status,
+               item.attributes ->> 'program_measurement' AS program_measurement,
                link.url AS preferred_url,
                link.target_specificity AS preferred_link_specificity,
                link.label AS preferred_link_label
         FROM aou.search_docs AS document
-        JOIN aou.items AS item ON item.item_key = document.item_key
+        JOIN aou.items AS item
+          ON item.item_key = document.item_key
+         AND item.snapshot_key = document.snapshot_key
         LEFT JOIN aou.links AS link ON link.link_key = document.preferred_link_key
         WHERE document.doc_key = ANY(%s)
         """,
@@ -376,28 +548,33 @@ def _intent_boost(
     return 0.0
 
 
-def _ehr_variable_rank_boost(document: dict[str, Any]) -> float:
-    if document.get("item_kind") != "omop_concept":
-        return 0.0
-    return (
-        0.02
-        if document.get("ehr_variable_role") in {"standard", "classification"}
-        else 0.0
-    )
-
-
 def search_aou_catalog(
     *,
     query: str,
     query_embedding: list[float] | None,
     method: str,
     limit: int,
+    variable_type: str | None = None,
+    ehr_domain: str | None = None,
+    ehr_role: str | None = None,
+    ehr_vocabulary: str | None = None,
 ) -> list[dict[str, Any]]:
     """Search one active public AoU metadata snapshot; never hydrate results."""
 
+    filters = _validated_filters(
+        variable_type=variable_type,
+        ehr_domain=ehr_domain,
+        ehr_role=ehr_role,
+        ehr_vocabulary=ehr_vocabulary,
+    )
     with read_cursor() as cursor:
         snapshot_key = _active_snapshot(cursor)
-        exact = _exact_candidates(cursor, snapshot_key=snapshot_key, query=query)
+        exact = _exact_candidates(
+            cursor,
+            snapshot_key=snapshot_key,
+            query=query,
+            filters=filters,
+        )
         keyword = (
             _keyword_candidates(
                 cursor,
@@ -408,6 +585,7 @@ def search_aou_catalog(
                     not exact and (method == "keyword" or query_embedding is None)
                 ),
                 fallback_threshold=limit,
+                filters=filters,
             )
             if method in {"keyword", "hybrid"}
             else []
@@ -418,6 +596,7 @@ def search_aou_catalog(
                 snapshot_key=snapshot_key,
                 query_embedding=query_embedding,
                 limit=max(100, limit * 10),
+                filters=filters,
             )
             if method in {"semantic", "hybrid"} and query_embedding is not None
             else []
@@ -446,7 +625,6 @@ def search_aou_catalog(
         )
         for doc_key, document in documents.items():
             scores[doc_key] += _intent_boost(query, document, signals[doc_key])
-            scores[doc_key] += _ehr_variable_rank_boost(document)
 
         ordered = sorted(
             scores,

@@ -243,6 +243,9 @@ _AOU_REQUIRED_RELATION_COLUMNS: Mapping[str, frozenset[str]] = {
             "preferred_link_key",
             "content_sha256",
             "search_tsv",
+            "embedding",
+            "embedding_model",
+            "embedded_content_sha256",
         }
     ),
     "search_doc_members": frozenset({"doc_key", "item_key"}),
@@ -637,14 +640,33 @@ def _check_database(connection: Any, expected_role: str) -> tuple[str, ...]:
                             FROM aou.embedding_cache
                             WHERE dimensions = 1536
                         ),
+                        NOT EXISTS (
+                            SELECT 1
+                            FROM aou.active_snapshots AS active
+                            JOIN aou.search_docs AS document
+                              ON document.snapshot_key = active.snapshot_key
+                            WHERE document.is_embeddable
+                              AND (
+                                  document.embedding IS NULL
+                                  OR document.embedding_model <> %s
+                                  OR document.embedded_content_sha256
+                                     IS DISTINCT FROM document.content_sha256
+                              )
+                        ),
                         to_regprocedure('similarity(text,text)') IS NOT NULL
-                    """
+                    """,
+                    (
+                        (
+                            os.environ.get("QG_MCP_AOU_EMBEDDING_MODEL")
+                            or "text-embedding-3-small"
+                        ).strip(),
+                    ),
                 )
                 aou_data = cursor.fetchone()
                 if not aou_data or not all(bool(value) for value in aou_data):
                     raise PreflightError(
                         "The AoU schema lacks an active searchable snapshot, "
-                        "embeddings, or pg_trgm."
+                        "current embeddings, or pg_trgm."
                     )
 
             cursor.execute(

@@ -64,6 +64,12 @@ participant-level Workbench data.
   domain, or documentation record that helps locate or interpret variables but
   is explicitly returned with `is_variable: false`.
 
+AoU search can filter variables by `ehr`, `survey`, `physical_measurement`, or
+`fitbit`. EHR searches can additionally constrain the OMOP domain (`Condition`,
+`Drug`, `Measurement`, or `Procedure`), EHR role (`standard`, `source`, or
+`classification`), and vocabulary such as LOINC, SNOMED, RxNorm, ICD10CM, NDC,
+or CPT4. EHR-specific filters require the explicit `ehr` variable type.
+
 AoU identifiers can include OMOP concept IDs, LOINC, SNOMED CT, PPI, Fitbit,
 ICD, CPT, HCPCS, RxNorm, and NDC codes. One variable can therefore have several
 identifiers and links; these are identifiers for the same searchable record or

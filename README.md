@@ -10,11 +10,11 @@
 
 [![MCP CI](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/will-marella/querygap-mcp/actions/workflows/ci.yml) [![Remote MCP](https://img.shields.io/badge/MCP-remote_server-0066CC)](#connect) [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](#development) [![Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache)](LICENSE)
 
-QueryGaP gives your assistant structured access to dbGaP and UK Biobank
-documentation metadata. Use it to resolve dbGaP studies, find variables,
-datasets, and document metadata within an exact study accession, and search or
-inspect UK Biobank fields—with source identifiers and canonical links in the
-results.
+QueryGaP gives your assistant structured access to dbGaP, UK Biobank, and
+public All of Us documentation metadata. Use it to resolve dbGaP studies, find
+variables, datasets, and document metadata within an exact study accession,
+search or inspect UK Biobank fields, and navigate public All of Us variables
+with source identifiers and canonical links in the results.
 
 The MCP client supplies the reasoning and decides which tools to call. QueryGaP
 handles study resolution, scoped retrieval, ranking, and provenance.
@@ -91,6 +91,12 @@ with no authentication.
 > field and return its exact field ID, title, category path, available instance
 > summaries, and source link.
 
+**All of Us**
+
+> Find All of Us EHR measurement variables for diastolic blood pressure. Focus
+> on standard LOINC concepts, then inspect the best result's identifiers,
+> relationships, and Data Browser link.
+
 ## Tools
 
 | Tool | Purpose |
@@ -106,11 +112,13 @@ When the catalog database includes the isolated `aou` schema and
 
 | Tool | Purpose |
 | --- | --- |
-| `search_aou_catalog` | Search public All of Us variables and related navigation/support metadata. |
+| `search_aou_catalog` | Search public All of Us metadata, optionally filtering by variable type and EHR domain, role, or vocabulary. |
 | `get_aou_item` | Retrieve one AoU result's identifiers, links, answer choices, scale membership, and concept relationships. |
 
 AoU results explicitly distinguish variables from contextual records. These
-tools never connect to participant-level All of Us Workbench data.
+tools never connect to participant-level All of Us Workbench data. EHR-specific
+filters require `variable_type="ehr"`; omitting filters searches the full public
+metadata catalog.
 
 For dbGaP, QueryGaP resolves the study first and preserves the full versioned
 accession throughout retrieval. UK Biobank remains a separate, field-centric

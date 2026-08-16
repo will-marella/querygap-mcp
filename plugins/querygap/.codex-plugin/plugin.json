@@ -1,7 +1,7 @@
 {
   "name": "querygap",
-  "version": "0.1.0",
-  "description": "Read-only MCP retrieval for public dbGaP and UK Biobank scientific metadata",
+  "version": "0.2.0",
+  "description": "Read-only MCP retrieval for public dbGaP, UK Biobank, and All of Us scientific metadata",
   "author": {
     "name": "QueryGaP",
     "url": "https://github.com/will-marella"
@@ -9,12 +9,12 @@
   "homepage": "https://querygap.org",
   "repository": "https://github.com/will-marella/querygap-mcp",
   "license": "Apache-2.0",
-  "keywords": ["dbgap", "uk-biobank", "scientific-metadata", "mcp", "hybrid-retrieval"],
+  "keywords": ["dbgap", "uk-biobank", "all-of-us", "scientific-metadata", "mcp", "hybrid-retrieval"],
   "skills": "./skills/",
   "interface": {
     "displayName": "QueryGaP",
-    "shortDescription": "Search public dbGaP and UK Biobank metadata",
-    "longDescription": "Resolve dbGaP studies and inspect variables, datasets, documentation metadata, and UK Biobank fields with exact identifiers, provenance caveats, and canonical source links.",
+    "shortDescription": "Search public dbGaP, UK Biobank, and All of Us metadata",
+    "longDescription": "Resolve dbGaP studies and inspect variables, datasets, documentation metadata, UK Biobank fields, and public All of Us variables with exact identifiers, explicit filters, provenance caveats, and canonical source links.",
     "developerName": "QueryGaP",
     "category": "Research",
     "capabilities": ["Read-only retrieval", "Scientific metadata", "Hybrid search"],
@@ -22,7 +22,7 @@
     "defaultPrompt": [
       "Find blood-pressure variables in the Framingham Heart Study.",
       "Compare likely ARIC study matches before searching variables.",
-      "Find UK Biobank fields related to kidney function."
+      "Find All of Us standard LOINC variables for diastolic blood pressure."
     ]
   },
   "mcpServers": "./.mcp.json"

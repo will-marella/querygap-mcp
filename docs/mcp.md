@@ -124,7 +124,10 @@ All of Us is also a separate vertical. Search results label primary/grouped
 records as variables and navigation/support records as context. Detail lookup
 uses the opaque result ID returned by search and can return identifiers, links,
 survey choices, scale membership, physical-measurement details, and OMOP
-relationships. It reads public Data Browser metadata only.
+relationships. Search can optionally filter by high-level variable type. EHR
+search can additionally filter by OMOP domain, EHR role, and vocabulary; those
+constraints are applied before candidate limits and require
+`variable_type="ehr"`. It reads public Data Browser metadata only.
 
 Retrieval is entity-specific. Variables and datasets use PostgreSQL full-text
 search for `keyword`; UK Biobank adds exact field-ID and stored-alias boosts.

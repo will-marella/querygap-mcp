@@ -229,7 +229,7 @@ def _passing_aou_database_responses() -> list[object]:
         relation_kinds,
         indexed_columns,
         [(name,) for name in local._AOU_REQUIRED_INDEX_NAMES],
-        (True, True, True),
+        (True, True, True, True),
         privileges,
         *responses[8:],
     ]
@@ -278,6 +278,21 @@ def test_preflight_checks_enabled_aou_schema(
     executed_sql = "\n".join(connection.statements).lower()
     assert "has_schema_privilege(current_user, 'aou', 'usage')" in executed_sql
     assert "from aou.active_snapshots" in executed_sql
+
+
+def test_preflight_requires_current_document_embeddings_for_aou_filters(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    responses = _passing_aou_database_responses()
+    responses[9] = (True, True, False, True)
+    connection = FakeConnection(responses)
+    monkeypatch.setenv("QG_MCP_AOU_ENABLED", "1")
+    monkeypatch.setenv("QG_MCP_EXPECTED_DB_ROLE", "querygap_mcp_ro")
+    monkeypatch.setenv("QG_MCP_EMBEDDINGS_ENABLED", "0")
+    monkeypatch.setattr(local, "_connect_for_preflight", lambda: connection)
+
+    with pytest.raises(local.PreflightError, match="current embeddings"):
+        local.run_preflight()
 
 
 def test_preflight_warns_but_does_not_fail_on_inherited_temp(

@@ -292,6 +292,10 @@ def test_aou_search_marks_variables_and_preserves_catalog_identity(
     result = service.search_aou_catalog(
         query="diastolic blood pressure",
         method="hybrid",
+        variable_type="ehr",
+        ehr_domain="Measurement",
+        ehr_role="standard",
+        ehr_vocabulary="LOINC",
     )
 
     item = result["items"][0]
@@ -304,6 +308,45 @@ def test_aou_search_marks_variables_and_preserves_catalog_identity(
     )
     call = next(call for call in recorder.calls if call[0] == "search_aou")
     assert len(call[2]["query_embedding"]) == 1536
+    assert call[2]["variable_type"] == "ehr"
+    assert call[2]["ehr_domain"] == "Measurement"
+    assert call[2]["ehr_role"] == "standard"
+    assert call[2]["ehr_vocabulary"] == "LOINC"
+    assert result["applied_filters"] == {
+        "variable_type": "ehr",
+        "ehr_domain": "Measurement",
+        "ehr_role": "standard",
+        "ehr_vocabulary": "LOINC",
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("ehr_domain", "Measurement"),
+        ("ehr_role", "standard"),
+        ("ehr_vocabulary", "LOINC"),
+    ],
+)
+def test_aou_ehr_filters_require_explicit_ehr_variable_type(
+    service: QueryGaPRetrievalService,
+    field: str,
+    value: str,
+) -> None:
+    with pytest.raises(ServiceError, match="require variable_type='ehr'"):
+        service.search_aou_catalog(
+            query="blood pressure",
+            method="keyword",
+            **{field: value},
+        )
+
+
+def test_aou_unfiltered_search_reports_no_applied_filters(
+    service: QueryGaPRetrievalService,
+) -> None:
+    result = service.search_aou_catalog(query="blood pressure", method="keyword")
+
+    assert result["applied_filters"] == {}
 
 
 def test_aou_hybrid_falls_back_to_keyword(recorder: Recorder) -> None:
