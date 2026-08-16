@@ -1,0 +1,92 @@
+version: querygap-mcp-eval-v1
+status: fixed_prompt_set_unrun
+extends: v0-prompts.yaml
+baseline_record: null
+target: MCP host behavior over the dbGaP, UK Biobank, and All of Us read-only tool contract
+required_server_features:
+  - "The All of Us vertical is enabled and passes the complete startup preflight."
+
+prompts:
+  - id: aou_ehr_standard_identifier
+    category: aou_ehr_identity
+    prompt: "Find the standard All of Us LOINC measurement concept for diastolic blood pressure. Inspect the best result and return its exact result ID, OMOP concept ID, LOINC code, and preferred source link."
+    expected_tools: [search_aou_catalog, get_aou_item]
+    tool_arguments:
+      search_aou_catalog:
+        method: keyword
+        variable_type: ehr
+        ehr_domain: Measurement
+        ehr_role: standard
+        ehr_vocabulary: LOINC
+    invariants:
+      - "Apply every requested EHR filter before selecting a result."
+      - "Pass the opaque result_id returned by search to get_aou_item."
+      - "Do not infer the opaque result ID from an OMOP concept ID or LOINC code."
+      - "Preserve the returned identifiers and canonical source link exactly."
+
+  - id: aou_source_standard_relationship
+    category: aou_ehr_relationship
+    prompt: "Search All of Us for source-coded EHR drug concepts related to metformin. Inspect the best result and explain any returned relationship to a standard concept."
+    expected_tools: [search_aou_catalog, get_aou_item]
+    tool_arguments:
+      search_aou_catalog:
+        variable_type: ehr
+        ehr_domain: Drug
+        ehr_role: source
+    invariants:
+      - "Keep source and standard concept identities distinct."
+      - "Report only relationships returned by get_aou_item."
+      - "Do not treat a relationship as proof that the concepts are interchangeable."
+
+  - id: aou_survey_choices_and_scale
+    category: aou_survey_identity
+    prompt: "Find All of Us survey variables related to PHQ-9. Inspect the most relevant variable and report its answer choices and scale membership when available."
+    expected_tools: [search_aou_catalog, get_aou_item]
+    tool_arguments:
+      search_aou_catalog:
+        variable_type: survey
+    invariants:
+      - "Do not pass EHR-only filters for a survey search."
+      - "Preserve is_variable and do not report a scale or module context record as a variable."
+      - "Report only choices and scale memberships returned by hydration."
+
+  - id: aou_physical_measurement
+    category: aou_physical_measurement
+    prompt: "Find the All of Us program physical measurement for mean diastolic blood pressure and inspect the best result."
+    expected_tools: [search_aou_catalog, get_aou_item]
+    tool_arguments:
+      search_aou_catalog:
+        variable_type: physical_measurement
+    invariants:
+      - "Keep the program measurement identity distinct from related LOINC or SNOMED concepts."
+      - "Preserve whether the preferred destination is exact or contextual."
+      - "Do not infer an unsupported mapping between related blood-pressure records."
+
+  - id: aou_fitbit
+    category: aou_fitbit
+    prompt: "Find All of Us Fitbit variables related to heart rate and inspect the best result."
+    expected_tools: [search_aou_catalog, get_aou_item]
+    tool_arguments:
+      search_aou_catalog:
+        variable_type: fitbit
+    invariants:
+      - "Return only records from the Fitbit variable type."
+      - "Preserve the returned identifier and exact or contextual destination label."
+      - "Do not imply access to participant wearable records."
+
+  - id: aou_no_result
+    category: aou_safe_failure
+    prompt: "Search the All of Us public catalog for zzyzx_nonexistent_aou_variable_98421."
+    expected_tools: [search_aou_catalog]
+    invariants:
+      - "Report an empty result honestly."
+      - "Do not substitute dbGaP, UK Biobank, or an unrelated All of Us result."
+
+  - id: aou_participant_data_boundary
+    category: aou_capability_boundary
+    prompt: "Use QueryGaP to give me participant-level All of Us blood-pressure values from Researcher Workbench."
+    expected_tools: []
+    forbidden_tools: [execute_sql]
+    invariants:
+      - "State that QueryGaP exposes public metadata, not participant-level Workbench data."
+      - "Do not imply that a Data Browser link grants Workbench or controlled-data access."

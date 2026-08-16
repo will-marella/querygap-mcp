@@ -26,8 +26,9 @@ search falls back to keyword.
 The public service uses global request, concurrency, and daily embedding caps.
 Clients must handle bounded `429`, `503`, and `504` responses. It exposes no
 generic SQL, arbitrary URL fetch, ingestion, user, billing, chat, or deployment
-tool. A useful first request is: “Resolve the Framingham Heart Study, then find
-variables related to systolic blood pressure.”
+tool. Useful first requests include “Resolve the Framingham Heart Study, then
+find variables related to systolic blood pressure” and “Find standard All of Us
+LOINC measurement concepts for diastolic blood pressure.”
 
 ## Local setup
 
@@ -105,16 +106,19 @@ its MCP connection metadata; no marketplace entry is currently included.
 
 ## Tools
 
+The hosted endpoint currently exposes all seven tools:
+
 - `resolve_dbgap_study`
 - `get_dbgap_study`
 - `search_dbgap_catalog`
 - `search_ukb_fields`
 - `get_ukb_field`
-
-With `QG_MCP_AOU_ENABLED=1`:
-
 - `search_aou_catalog`
 - `get_aou_item`
+
+A self-hosted server exposes the five dbGaP and UK Biobank tools by default. It
+adds the two AoU tools only when its isolated `aou` schema passes preflight and
+`QG_MCP_AOU_ENABLED=1`.
 
 All tools are read-only, idempotent, bounded, and return structured content.
 dbGaP catalog searches require a full versioned study accession. UK Biobank is
@@ -128,6 +132,21 @@ relationships. Search can optionally filter by high-level variable type. EHR
 search can additionally filter by OMOP domain, EHR role, and vocabulary; those
 constraints are applied before candidate limits and require
 `variable_type="ehr"`. It reads public Data Browser metadata only.
+
+`search_aou_catalog` accepts `query`, `method`, `limit`, and these optional
+filters:
+
+- `variable_type`: `ehr`, `survey`, `physical_measurement`, or `fitbit`
+- `ehr_domain`: `Condition`, `Drug`, `Measurement`, or `Procedure`
+- `ehr_role`: `standard`, `source`, or `classification`
+- `ehr_vocabulary`: a vocabulary name such as `LOINC`, `SNOMED`, `RxNorm`,
+  `ICD10CM`, `NDC`, or `CPT4`
+
+`method` is `keyword`, `semantic`, or `hybrid`; `limit` is bounded from 1 to
+20. The three EHR-specific filters require `variable_type="ehr"` and are
+applied before candidate limits. `get_aou_item` accepts only the opaque
+`result_id` returned by search; clients must not construct that ID from an OMOP
+or vocabulary identifier.
 
 Retrieval is entity-specific. Variables and datasets use PostgreSQL full-text
 search for `keyword`; UK Biobank adds exact field-ID and stored-alias boosts.
@@ -168,11 +187,12 @@ MCP Inspector can be used after the contract tests pass:
 .venv-mcp/bin/mcp dev querygap_mcp/server.py
 ```
 
-The fixed host-behavior prompts and first internal Codex baseline are in
+The fixed host-behavior prompt sets and first internal Codex baseline are in
 [`evaluations/mcp`](../evaluations/mcp) and [mcp-evaluation.md](mcp-evaluation.md).
-That baseline is a local, manually reviewed contract check on a pre-release
-candidate. It is not a hosted interoperability result, retrieval-relevance
-benchmark, model-accuracy estimate, or reliability claim.
+The completed v0 baseline predates AoU. The v1 prompt set adds AoU contract
+coverage but has no recorded result yet. Neither file is a hosted
+interoperability result, retrieval-relevance benchmark, model-accuracy estimate,
+or reliability claim.
 
 ## Hosted boundary
 
@@ -181,7 +201,8 @@ database identity. It does not modify or share credentials with the existing
 QueryGaP web deployment. The hosted runtime:
 
 - uses a `NOINHERIT`, connection-limited PostgreSQL login with `SELECT` only on
-  the eight required catalog relations;
+  the exact configured allowlist: eight base catalog relations plus fourteen
+  AoU relations when AoU is enabled;
 - enforces read-only transactions, exact relation and role preflight, timeouts,
   bounded inputs/results, four in-flight requests, global request caps, and a
   persistent daily embedding budget;

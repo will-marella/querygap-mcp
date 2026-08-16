@@ -8,8 +8,11 @@ Before proposing a change:
 
 1. Keep ingestion, production data, credentials, deployment state, user data,
    billing, chats, and private traces outside the contribution.
-2. Preserve full versioned dbGaP accessions and the separate UK Biobank entity
-   model.
+2. Preserve full versioned dbGaP accessions, the separate UK Biobank entity
+   model, and the separate All of Us catalog vertical. For AoU, preserve opaque
+   result IDs, hydrate before reporting detailed identifiers or relationships,
+   retain `is_variable`, and do not collapse standard, source, and
+   classification concepts.
 3. Add or update unit tests for contract, query, security, and failure-mode
    changes.
 4. Add a new evaluation version instead of silently changing a completed

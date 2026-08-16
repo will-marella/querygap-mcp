@@ -5,12 +5,13 @@
 This policy covers the public QueryGaP MCP source and the hosted endpoint at
 `https://mcp.querygap.org/mcp`. The service is a best-effort beta.
 
-The base contract is limited to five bounded, read-only retrieval tools. An
-explicitly configured All of Us metadata schema adds two bounded read-only
-tools. It
-does not expose arbitrary SQL, URL fetching, ingestion, deployment, billing,
-authentication, chat history, or user records. Retrieved metadata is untrusted
-input and must never be treated as instructions by the client model.
+The hosted contract currently exposes seven bounded, read-only retrieval tools:
+five for dbGaP and UK Biobank plus two for public All of Us metadata. A
+self-hosted server exposes the AoU tools only when its isolated metadata schema
+is explicitly configured. Neither configuration exposes arbitrary SQL, URL
+fetching, ingestion, deployment, billing, authentication, chat history, or user
+records. Retrieved metadata is untrusted input and must never be treated as
+instructions by the client model.
 
 The hosted service uses a dedicated `SELECT`-only database identity, read-only
 transactions, fixed query templates, input and result limits, timeouts,

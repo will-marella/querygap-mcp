@@ -3,7 +3,7 @@
 ### Use QueryGaP with ChatGPT and Claude directly in your browser!
 
 <p align="center">
-  <img src="docs/assets/querygap-mcp-overview.svg" width="80%" alt="QueryGaP connects ChatGPT and Claude to linked dbGaP study, dataset, variable, summary-statistics, and documentation results.">
+  <img src="docs/assets/querygap-mcp-overview.svg" width="80%" alt="QueryGaP connects ChatGPT and Claude to structured biomedical metadata search and source-linked results.">
 </p>
 
 **No local installation. No QueryGaP account. No QueryGaP API key.**
@@ -99,6 +99,8 @@ with no authentication.
 
 ## Tools
 
+The hosted public beta currently exposes all seven read-only tools:
+
 | Tool | Purpose |
 | --- | --- |
 | `resolve_dbgap_study` | Resolve a study name, acronym, accession, or dbGaP URL to ranked candidates. |
@@ -106,12 +108,6 @@ with no authentication.
 | `search_dbgap_catalog` | Search a resolved study's variables, datasets, or document-title metadata using keyword, semantic, or hybrid retrieval. |
 | `search_ukb_fields` | Search the UK Biobank field dictionary by concept, field ID, or stored aliases. |
 | `get_ukb_field` | Retrieve an exact UK Biobank field and optional instance summaries. |
-
-When the catalog database includes the isolated `aou` schema and
-`QG_MCP_AOU_ENABLED=1`, the same MCP additionally exposes:
-
-| Tool | Purpose |
-| --- | --- |
 | `search_aou_catalog` | Search public All of Us metadata, optionally filtering by variable type and EHR domain, role, or vocabulary. |
 | `get_aou_item` | Retrieve one AoU result's identifiers, links, answer choices, scale membership, and concept relationships. |
 
@@ -119,6 +115,10 @@ AoU results explicitly distinguish variables from contextual records. These
 tools never connect to participant-level All of Us Workbench data. EHR-specific
 filters require `variable_type="ehr"`; omitting filters searches the full public
 metadata catalog.
+
+Self-hosted servers expose the five dbGaP and UK Biobank tools by default. They
+add the two AoU tools only when the isolated `aou` schema passes preflight and
+`QG_MCP_AOU_ENABLED=1`.
 
 For dbGaP, QueryGaP resolves the study first and preserves the full versioned
 accession throughout retrieval. UK Biobank remains a separate, field-centric

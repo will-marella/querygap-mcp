@@ -15,7 +15,8 @@ flowchart LR
 
 ## Implemented in both runtimes
 
-- Five fixed base tools and two optional All of Us public-metadata tools; no
+- Five fixed base tools and two configurable All of Us public-metadata tools;
+  the hosted beta currently exposes all seven. Neither configuration exposes
   arbitrary SQL, URL fetching, ingestion, writes, participant data, chat,
   billing, user records, or deployment operations.
 - A mandatory `QG_MCP_DATABASE_URL`, separate connection pool, read-only
@@ -43,8 +44,8 @@ model must still ignore instruction-like content embedded in source metadata.
 - A separate Railway project, service, PostgreSQL database, and persistent
   budget volume; the existing QueryGaP web deployment is unchanged.
 - A `NOINHERIT`, `SELECT`-only, connection-limited database role whose startup
-  audit has zero warnings and whose deployed allowlist contains only the
-  configured catalog relations.
+  audit has zero warnings and whose deployed allowlist contains only eight base
+  catalog relations and fourteen AoU relations.
 - Exact Host/Origin allowlists, HTTPS, public liveness/readiness, explicit
   anonymous mode enabled after bearer-gated validation, and no `/mcp/`
   redirect ambiguity.
